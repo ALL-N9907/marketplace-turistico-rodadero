@@ -1,5 +1,7 @@
 package com.edu.unimag.rodatours.entities;
 
+import com.edu.unimag.rodatours.domain.entities.Tour;
+import com.edu.unimag.rodatours.domain.entities.TourSchedule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

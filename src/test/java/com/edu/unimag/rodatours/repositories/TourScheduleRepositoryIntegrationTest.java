@@ -1,11 +1,11 @@
 package com.edu.unimag.rodatours.repositories;
 
-import com.edu.unimag.rodatours.entities.Agency;
-import com.edu.unimag.rodatours.entities.ExperienceType;
-import com.edu.unimag.rodatours.entities.Guide;
-import com.edu.unimag.rodatours.entities.Tour;
-import com.edu.unimag.rodatours.entities.TourSchedule;
-import com.edu.unimag.rodatours.entities.enums.ReservationStatus;
+import com.edu.unimag.rodatours.domain.entities.Agency;
+import com.edu.unimag.rodatours.domain.entities.ExperienceType;
+import com.edu.unimag.rodatours.domain.entities.Guide;
+import com.edu.unimag.rodatours.domain.entities.Tour;
+import com.edu.unimag.rodatours.domain.entities.TourSchedule;
+import com.edu.unimag.rodatours.domain.repositories.TourScheduleRepository;
 import jakarta.persistence.LockModeType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,19 +1,19 @@
 package com.edu.unimag.rodatours.repositories;
 
-import com.edu.unimag.rodatours.entities.Agency;
-import com.edu.unimag.rodatours.entities.ExperienceType;
-import com.edu.unimag.rodatours.entities.Guide;
-import com.edu.unimag.rodatours.entities.Reservation;
-import com.edu.unimag.rodatours.entities.Review;
-import com.edu.unimag.rodatours.entities.Tour;
-import com.edu.unimag.rodatours.entities.TourSchedule;
-import com.edu.unimag.rodatours.entities.Tourist;
-import com.edu.unimag.rodatours.entities.enums.AgencyStatus;
-import com.edu.unimag.rodatours.entities.enums.DifficultyLevel;
-import com.edu.unimag.rodatours.entities.enums.GuideStatus;
-import com.edu.unimag.rodatours.entities.enums.ReservationStatus;
-import com.edu.unimag.rodatours.entities.enums.TourStatus;
-import com.edu.unimag.rodatours.entities.enums.TouristStatus;
+import com.edu.unimag.rodatours.domain.entities.Agency;
+import com.edu.unimag.rodatours.domain.entities.ExperienceType;
+import com.edu.unimag.rodatours.domain.entities.Guide;
+import com.edu.unimag.rodatours.domain.entities.Reservation;
+import com.edu.unimag.rodatours.domain.entities.Review;
+import com.edu.unimag.rodatours.domain.entities.Tour;
+import com.edu.unimag.rodatours.domain.entities.TourSchedule;
+import com.edu.unimag.rodatours.domain.entities.Tourist;
+import com.edu.unimag.rodatours.domain.entities.enums.AgencyStatus;
+import com.edu.unimag.rodatours.domain.entities.enums.DifficultyLevel;
+import com.edu.unimag.rodatours.domain.entities.enums.GuideStatus;
+import com.edu.unimag.rodatours.domain.entities.enums.ReservationStatus;
+import com.edu.unimag.rodatours.domain.entities.enums.TourStatus;
+import com.edu.unimag.rodatours.domain.entities.enums.TouristStatus;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 
 import java.math.BigDecimal;

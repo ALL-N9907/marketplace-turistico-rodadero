@@ -1,5 +1,6 @@
 package com.edu.unimag.rodatours.entities.enums;
 
+import com.edu.unimag.rodatours.domain.entities.enums.ReservationStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

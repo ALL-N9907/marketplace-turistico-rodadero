@@ -1,13 +1,14 @@
 package com.edu.unimag.rodatours.repositories;
 
-import com.edu.unimag.rodatours.entities.Agency;
-import com.edu.unimag.rodatours.entities.ExperienceType;
-import com.edu.unimag.rodatours.entities.Reservation;
-import com.edu.unimag.rodatours.entities.Review;
-import com.edu.unimag.rodatours.entities.Tour;
-import com.edu.unimag.rodatours.entities.TourSchedule;
-import com.edu.unimag.rodatours.entities.Tourist;
-import com.edu.unimag.rodatours.entities.enums.ReservationStatus;
+import com.edu.unimag.rodatours.domain.entities.Agency;
+import com.edu.unimag.rodatours.domain.entities.ExperienceType;
+import com.edu.unimag.rodatours.domain.entities.Reservation;
+import com.edu.unimag.rodatours.domain.entities.Review;
+import com.edu.unimag.rodatours.domain.entities.Tour;
+import com.edu.unimag.rodatours.domain.entities.TourSchedule;
+import com.edu.unimag.rodatours.domain.entities.Tourist;
+import com.edu.unimag.rodatours.domain.entities.enums.ReservationStatus;
+import com.edu.unimag.rodatours.domain.repositories.ReviewRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

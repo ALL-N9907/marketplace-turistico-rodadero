@@ -1,6 +1,7 @@
 package com.edu.unimag.rodatours.repositories;
 
-import com.edu.unimag.rodatours.entities.ExperienceType;
+import com.edu.unimag.rodatours.domain.entities.ExperienceType;
+import com.edu.unimag.rodatours.domain.repositories.ExperienceTypeRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

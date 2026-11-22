@@ -1,12 +1,12 @@
 package com.edu.unimag.rodatours.dtos;
 
-import com.edu.unimag.rodatours.dtos.mapper.ReportMapper;
-import com.edu.unimag.rodatours.dtos.response.AgencyOccupancyResponse;
-import com.edu.unimag.rodatours.dtos.response.AgencyProductivityResponse;
-import com.edu.unimag.rodatours.dtos.response.NoShowTouristResponse;
-import com.edu.unimag.rodatours.repositories.projections.AgencyOccupancyProjection;
-import com.edu.unimag.rodatours.repositories.projections.AgencyProductivityProjection;
-import com.edu.unimag.rodatours.repositories.projections.NoShowTouristProjection;
+import com.edu.unimag.rodatours.services.mapper.ReportMapper;
+import com.edu.unimag.rodatours.api.dtos.response.AgencyOccupancyResponse;
+import com.edu.unimag.rodatours.api.dtos.response.AgencyProductivityResponse;
+import com.edu.unimag.rodatours.api.dtos.response.NoShowTouristResponse;
+import com.edu.unimag.rodatours.domain.repositories.projections.AgencyOccupancyProjection;
+import com.edu.unimag.rodatours.domain.repositories.projections.AgencyProductivityProjection;
+import com.edu.unimag.rodatours.domain.repositories.projections.NoShowTouristProjection;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
