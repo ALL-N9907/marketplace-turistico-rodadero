@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -22,6 +23,7 @@ public class TourController {
     private final TourService tourService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or @accessPolicy.agency(#request.agenciaId())")
     public ResponseEntity<TourResponse> create(@Valid @RequestBody CreateTourRequest request) {
         TourResponse response = tourService.create(request);
         return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentRequest()
@@ -44,7 +46,15 @@ public class TourController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (@accessPolicy.tour(#id) and @accessPolicy.agency(#request.agenciaId()))")
     public TourResponse update(@PathVariable @Positive Long id, @Valid @RequestBody UpdateTourRequest request) {
         return tourService.update(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @accessPolicy.tour(#id)")
+    public ResponseEntity<Void> delete(@PathVariable @Positive Long id) {
+        tourService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

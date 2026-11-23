@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -22,6 +23,7 @@ public class GuideController {
     private final GuideService guideService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or @accessPolicy.agency(#request.agenciaId())")
     public ResponseEntity<GuideResponse> create(@Valid @RequestBody CreateGuideRequest request) {
         GuideResponse response = guideService.create(request);
         return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentRequest()
@@ -29,11 +31,13 @@ public class GuideController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @accessPolicy.guide(#id)")
     public GuideResponse getById(@PathVariable @Positive Long id) {
         return guideService.getById(id);
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or @accessPolicy.agency(#agenciaId)")
     public List<GuideResponse> getAll(@RequestParam(required = false) @Positive Long agenciaId,
                                       @RequestParam(required = false) GuideStatus estado) {
         if ((agenciaId == null) != (estado == null)) {
@@ -43,6 +47,7 @@ public class GuideController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (@accessPolicy.guide(#id) and @accessPolicy.agency(#request.agenciaId()))")
     public GuideResponse update(@PathVariable @Positive Long id, @Valid @RequestBody UpdateGuideRequest request) {
         return guideService.update(id, request);
     }

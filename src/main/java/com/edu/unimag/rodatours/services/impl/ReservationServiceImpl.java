@@ -24,6 +24,8 @@ import com.edu.unimag.rodatours.services.exceptions.ResourceNotFoundException;
 import com.edu.unimag.rodatours.services.mapper.ReportMapper;
 import com.edu.unimag.rodatours.services.mapper.ReservationMapper;
 import lombok.RequiredArgsConstructor;
+import com.edu.unimag.rodatours.notifications.ReservationChanged;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,10 +51,12 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final TouristRepository touristRepository;
     private final TourScheduleRepository tourScheduleRepository;
+    private final ApplicationEventPublisher events;
 
     @Override
     public ReservationResponse create(CreateReservationRequest request) {
-        Tourist tourist = touristRepository.findById(request.turistaId())
+        // Serializa reservas del mismo turista incluso si apuntan a salidas distintas.
+        Tourist tourist = touristRepository.findByIdForUpdate(request.turistaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Turista no encontrado con id: " + request.turistaId()));
         if (!tourist.isActive()) {
             throw new BusinessException("El turista se encuentra inactivo y no puede realizar reservas.");
@@ -96,6 +100,7 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = ReservationMapper.toEntity(
                 request, tourist, schedule, fechaInicio, fechaFin, precioTotal, codigoQr);
         Reservation saved = reservationRepository.save(reservation);
+        events.publishEvent(ReservationChanged.from(saved));
         return ReservationMapper.toResponse(saved);
     }
 
@@ -183,6 +188,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         tourScheduleRepository.save(lockedSchedule);
         Reservation saved = reservationRepository.save(reservation);
+        events.publishEvent(ReservationChanged.from(saved));
         return ReservationMapper.toResponse(saved);
     }
 
@@ -218,6 +224,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         Reservation saved = reservationRepository.save(reservation);
+        events.publishEvent(ReservationChanged.from(saved));
         return ReservationMapper.toResponse(saved);
     }
 
@@ -233,6 +240,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         reservation.complete(observacionesAdicionales);
+        events.publishEvent(ReservationChanged.from(reservation));
         return ReservationMapper.toResponse(reservationRepository.save(reservation));
     }
 
@@ -248,6 +256,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         reservation.markNoShow();
+        events.publishEvent(ReservationChanged.from(reservation));
         return ReservationMapper.toResponse(reservationRepository.save(reservation));
     }
 

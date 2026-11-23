@@ -27,7 +27,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ReservationController.class)
-@WithMockUser
+@org.springframework.context.annotation.Import(com.edu.unimag.rodatours.config.SecurityConfig.class)
+@WithMockUser(roles = "ADMIN")
 class ReservationControllerTest {
     @Autowired
     private MockMvc mvc;

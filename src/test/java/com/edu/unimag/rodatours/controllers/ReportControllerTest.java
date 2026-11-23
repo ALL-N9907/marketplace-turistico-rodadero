@@ -18,7 +18,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ReportController.class)
-@WithMockUser
+@org.springframework.context.annotation.Import(com.edu.unimag.rodatours.config.SecurityConfig.class)
+@WithMockUser(roles = "ADMIN")
 class ReportControllerTest {
     @Autowired
     private MockMvc mvc;
@@ -28,6 +29,17 @@ class ReportControllerTest {
 
     private final LocalDate desde = LocalDate.of(2026, 1, 1);
     private final LocalDate hasta = LocalDate.of(2026, 1, 31);
+
+    @Test
+    void returnsExperienceTypeCancellationReport() throws Exception {
+        when(service.getExperienceTypeCancellations(desde, hasta)).thenReturn(List.of(
+                new com.edu.unimag.rodatours.api.dtos.response.ExperienceTypeCancellationResponse("Aventura",
+                        com.edu.unimag.rodatours.domain.entities.enums.ReservationStatus.CANCELLED, 3L)));
+        mvc.perform(get("/api/reports/experience-type-cancellations")
+                        .param("desde", desde.toString()).param("hasta", hasta.toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].cantidad").value(3));
+        verify(service).getExperienceTypeCancellations(desde, hasta);
+    }
 
     @Test
     void delegatesAllThreeReports() throws Exception {

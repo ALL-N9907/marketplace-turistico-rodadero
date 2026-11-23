@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -21,6 +22,7 @@ public class AgencyController {
     private final AgencyService agencyService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AgencyResponse> create(@Valid @RequestBody CreateAgencyRequest request) {
         AgencyResponse response = agencyService.create(request);
         return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentRequest()
@@ -45,6 +47,7 @@ public class AgencyController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @accessPolicy.agency(#id)")
     public AgencyResponse update(@PathVariable @Positive Long id,
                                  @Valid @RequestBody UpdateAgencyRequest request) {
         return agencyService.update(id, request);

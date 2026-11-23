@@ -16,7 +16,6 @@ import com.edu.unimag.rodatours.services.TourScheduleService;
 import com.edu.unimag.rodatours.services.exceptions.BusinessException;
 import com.edu.unimag.rodatours.services.exceptions.ConflictException;
 import com.edu.unimag.rodatours.services.exceptions.ResourceNotFoundException;
-import com.edu.unimag.rodatours.services.mapper.AvailabilityMapper;
 import com.edu.unimag.rodatours.services.mapper.TourScheduleMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -83,7 +82,7 @@ public class TourScheduleServiceImpl implements TourScheduleService {
     @Transactional(readOnly = true)
     public List<AvailabilitySlotResponse> getAvailableSlots(Long tourId, LocalDate fecha, int cantidadPersonas) {
         Tour tour = findTourOrThrow(tourId);
-        if (!tour.isActive()) {
+        if (!tour.isActive() || !tour.getAgencia().isActive()) {
             return List.of();
         }
         if (fecha == null) {
@@ -93,7 +92,14 @@ public class TourScheduleServiceImpl implements TourScheduleService {
             throw new BusinessException("La cantidad de personas debe ser al menos 1.");
         }
         return tourScheduleRepository.findWithAvailableSpots(tourId, fecha, cantidadPersonas).stream()
-                .map(AvailabilityMapper::toResponse)
+                .filter(schedule -> schedule.getStartDateTime().isAfter(LocalDateTime.now()))
+                .map(schedule -> {
+                    Long held = reservationRepository.sumPersonasByHorarioIdAndEstado(schedule.getId(), ReservationStatus.SCHEDULED);
+                    int available = Math.max(0, schedule.getCuposDisponibles() - (held == null ? 0 : Math.toIntExact(held)));
+                    return new AvailabilitySlotResponse(schedule.getId(), tourId, schedule.getFechaTour(),
+                            schedule.getHoraInicio(), schedule.calculateEndDateTime(), schedule.getCuposTotales(), available);
+                })
+                .filter(slot -> slot.cuposDisponibles() >= cantidadPersonas)
                 .toList();
     }
 

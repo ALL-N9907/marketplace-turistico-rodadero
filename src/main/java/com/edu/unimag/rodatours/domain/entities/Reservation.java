@@ -36,6 +36,9 @@ public class Reservation {
     @ToString.Include
     private Long id;
 
+    @Version
+    private Long version;
+
     @NotNull(message = "El turista es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "turista_id", nullable = false)
@@ -92,6 +95,9 @@ public class Reservation {
 
     @Column(name = "fecha_modificacion")
     private LocalDateTime fechaModificacion;
+
+    @Column(name = "fecha_check_in")
+    private LocalDateTime fechaCheckIn;
 
     @OneToOne(mappedBy = "reserva", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Review review;

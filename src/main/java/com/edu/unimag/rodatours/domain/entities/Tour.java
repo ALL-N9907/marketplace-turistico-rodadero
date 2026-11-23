@@ -78,6 +78,18 @@ public class Tour {
     @Column(name = "servicios_incluidos", columnDefinition = "TEXT")
     private String serviciosIncluidos;
 
+    @Column(columnDefinition = "TEXT")
+    private String itinerario;
+
+    @Column(columnDefinition = "TEXT")
+    private String condiciones;
+
+    @Column(nullable = false)
+    private boolean apoyoComunidades;
+
+    @Column(nullable = false)
+    private boolean practicasAmbientales;
+
     @NotNull(message = "El estado del tour es obligatorio")
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 15)

@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -21,6 +22,7 @@ public class TouristController {
     private final TouristService touristService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<TouristResponse> create(@Valid @RequestBody CreateTouristRequest request) {
         TouristResponse response = touristService.create(request);
         return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentRequest()
@@ -28,16 +30,19 @@ public class TouristController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @accessPolicy.tourist(#id)")
     public TouristResponse getById(@PathVariable @Positive Long id) {
         return touristService.getById(id);
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<TouristResponse> getAll(@RequestParam(required = false) TouristStatus estado) {
         return estado == null ? touristService.getAll() : touristService.getByStatus(estado);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public TouristResponse update(@PathVariable @Positive Long id,
                                   @Valid @RequestBody UpdateTouristRequest request) {
         return touristService.update(id, request);

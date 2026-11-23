@@ -9,6 +9,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 /**
  * Empresa operadora que diseña, publica y opera tours y experiencias.
@@ -60,6 +61,15 @@ public class Agency {
     @Size(max = 20, message = "El teléfono no puede superar los 20 caracteres")
     @Column(name = "telefono_contacto", nullable = false, length = 20)
     private String telefonoContacto;
+
+    @Column(precision = 10, scale = 7)
+    private BigDecimal latitud;
+
+    @Column(precision = 10, scale = 7)
+    private BigDecimal longitud;
+
+    @Column(length = 1500)
+    private String fotoUrl;
 
     @NotNull(message = "El estado de la agencia es obligatorio")
     @Enumerated(EnumType.STRING)

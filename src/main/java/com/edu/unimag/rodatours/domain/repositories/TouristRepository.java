@@ -3,6 +3,8 @@ package com.edu.unimag.rodatours.domain.repositories;
 import com.edu.unimag.rodatours.domain.entities.Tourist;
 import com.edu.unimag.rodatours.domain.entities.enums.TouristStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,6 +15,10 @@ import java.util.Optional;
  * Consultas derivadas sobre el catálogo de turistas.
  */
 public interface TouristRepository extends JpaRepository<Tourist, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select t from Tourist t where t.id = :id")
+    Optional<Tourist> findByIdForUpdate(@Param("id") Long id);
 
     Optional<Tourist> findByCorreoElectronico(String correoElectronico);
 

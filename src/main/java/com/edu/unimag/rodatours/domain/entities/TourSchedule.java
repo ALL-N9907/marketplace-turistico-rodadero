@@ -38,6 +38,9 @@ public class TourSchedule {
     @ToString.Include
     private Long id;
 
+    @Version
+    private Long version;
+
     @NotNull(message = "El tour asociado es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "tour_id", nullable = false)

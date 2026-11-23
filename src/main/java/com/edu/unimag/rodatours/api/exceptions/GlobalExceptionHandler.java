@@ -4,6 +4,7 @@ import com.edu.unimag.rodatours.services.exceptions.BusinessException;
 import com.edu.unimag.rodatours.services.exceptions.ConflictException;
 import com.edu.unimag.rodatours.services.exceptions.ResourceNotFoundException;
 import com.edu.unimag.rodatours.services.exceptions.ValidationException;
+import com.edu.unimag.rodatours.media.MediaProviderException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.ConcurrencyFailureException;
@@ -32,6 +33,11 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final String INTERNAL_ERROR = "Ocurrió un error interno. Intente nuevamente más tarde.";
+
+    @ExceptionHandler(MediaProviderException.class)
+    public ProblemDetail handleMediaProvider(MediaProviderException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleNotFound(ResourceNotFoundException exception) {

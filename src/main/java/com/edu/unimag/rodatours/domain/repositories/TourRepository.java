@@ -4,6 +4,7 @@ import com.edu.unimag.rodatours.domain.entities.Tour;
 import com.edu.unimag.rodatours.domain.entities.enums.DifficultyLevel;
 import com.edu.unimag.rodatours.domain.entities.enums.TourStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,7 +14,7 @@ import java.util.List;
 /**
  * Consultas del catálogo de tours y de disponibilidad por destino y fecha.
  */
-public interface TourRepository extends JpaRepository<Tour, Long> {
+public interface TourRepository extends JpaRepository<Tour, Long>, JpaSpecificationExecutor<Tour> {
 
     List<Tour> findByAgenciaId(Long agenciaId);
 

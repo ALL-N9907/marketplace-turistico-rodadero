@@ -7,6 +7,8 @@ import com.edu.unimag.rodatours.domain.repositories.projections.AgencyProductivi
 import com.edu.unimag.rodatours.domain.repositories.projections.ExperienceTypeCancellationProjection;
 import com.edu.unimag.rodatours.domain.repositories.projections.NoShowTouristProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -20,6 +22,10 @@ import java.util.Optional;
  * Reservas y consultas de validación y reportes descritas en el documento del proyecto.
  */
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from Reservation r where r.id = :id")
+    Optional<Reservation> findByIdForUpdate(@Param("id") Long id);
 
     Optional<Reservation> findByCodigoQr(String codigoQr);
 

@@ -1,0 +1,5 @@
+# Sólo desarrollo: permite crear/actualizar el esquema. No usar contra datos de producción.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update

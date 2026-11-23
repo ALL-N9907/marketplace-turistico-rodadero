@@ -57,6 +57,9 @@ class ReservationServiceImplTest {
     @Mock
     private TourScheduleRepository tourScheduleRepository;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher events;
+
     @InjectMocks
     private ReservationServiceImpl reservationService;
 
@@ -104,7 +107,7 @@ class ReservationServiceImplTest {
     void create_success() {
         CreateReservationRequest request = new CreateReservationRequest(1L, 30L, 3, "Sin alergias");
 
-        when(touristRepository.findById(1L)).thenReturn(Optional.of(activeTourist));
+        when(touristRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(activeTourist));
         when(tourScheduleRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(futureSchedule));
         when(reservationRepository.existsOverlappingByTuristaAndStates(eq(1L), anyList(), any(), any()))
                 .thenReturn(false);
@@ -132,7 +135,7 @@ class ReservationServiceImplTest {
     @DisplayName("create() lanza BusinessException si el turista está inactivo")
     void create_inactiveTourist_throwsBusinessException() {
         activeTourist.setEstado(TouristStatus.INACTIVE);
-        when(touristRepository.findById(1L)).thenReturn(Optional.of(activeTourist));
+        when(touristRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(activeTourist));
 
         CreateReservationRequest request = new CreateReservationRequest(1L, 30L, 2, null);
 
@@ -144,7 +147,7 @@ class ReservationServiceImplTest {
     @DisplayName("create() lanza BusinessException si el tour o la agencia están inactivos")
     void create_inactiveTourOrAgency_throwsBusinessException() {
         activeTour.setEstado(TourStatus.INACTIVE);
-        when(touristRepository.findById(1L)).thenReturn(Optional.of(activeTourist));
+        when(touristRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(activeTourist));
         when(tourScheduleRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(futureSchedule));
 
         CreateReservationRequest request = new CreateReservationRequest(1L, 30L, 2, null);
@@ -157,7 +160,7 @@ class ReservationServiceImplTest {
     @DisplayName("create() lanza BusinessException si la salida ya ocurrió en el pasado")
     void create_pastSchedule_throwsBusinessException() {
         futureSchedule.setFechaTour(LocalDate.now().minusDays(1));
-        when(touristRepository.findById(1L)).thenReturn(Optional.of(activeTourist));
+        when(touristRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(activeTourist));
         when(tourScheduleRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(futureSchedule));
 
         CreateReservationRequest request = new CreateReservationRequest(1L, 30L, 2, null);
@@ -170,7 +173,7 @@ class ReservationServiceImplTest {
     @DisplayName("create() lanza ConflictException cuando no hay cupos suficientes")
     void create_insufficientSpots_throwsConflictException() {
         futureSchedule.setCuposDisponibles(1);
-        when(touristRepository.findById(1L)).thenReturn(Optional.of(activeTourist));
+        when(touristRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(activeTourist));
         when(tourScheduleRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(futureSchedule));
 
         CreateReservationRequest request = new CreateReservationRequest(1L, 30L, 2, null);
@@ -183,7 +186,7 @@ class ReservationServiceImplTest {
     @DisplayName("create() cuenta como ocupados los cupos retenidos por reservas SCHEDULED y lanza ConflictException")
     void create_pendingReservationsHoldSpots_throwsConflictException() {
         // 10 disponibles, 9 retenidos por pendientes -> solo queda 1 cupo real
-        when(touristRepository.findById(1L)).thenReturn(Optional.of(activeTourist));
+        when(touristRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(activeTourist));
         when(tourScheduleRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(futureSchedule));
         when(reservationRepository.sumPersonasByHorarioIdAndEstado(30L, ReservationStatus.SCHEDULED))
                 .thenReturn(9L);
@@ -197,7 +200,7 @@ class ReservationServiceImplTest {
     @Test
     @DisplayName("create() lanza ConflictException si el turista tiene una reserva activa traslapada")
     void create_overlappingReservation_throwsConflictException() {
-        when(touristRepository.findById(1L)).thenReturn(Optional.of(activeTourist));
+        when(touristRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(activeTourist));
         when(tourScheduleRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(futureSchedule));
         when(reservationRepository.existsOverlappingByTuristaAndStates(eq(1L), anyList(), any(), any()))
                 .thenReturn(true);

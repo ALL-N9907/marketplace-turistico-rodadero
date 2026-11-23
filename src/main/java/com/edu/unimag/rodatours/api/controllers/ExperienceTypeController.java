@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -19,6 +20,7 @@ public class ExperienceTypeController {
     private final ExperienceTypeService experienceTypeService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ExperienceTypeResponse> create(@Valid @RequestBody CreateExperienceTypeRequest request) {
         ExperienceTypeResponse response = experienceTypeService.create(request);
         return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentRequest()
