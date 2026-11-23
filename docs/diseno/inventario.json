@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "screens": [
+    {
+      "id": "01-explorar",
+      "title": "Explorar experiencias",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "02-catalogo-filtros",
+      "title": "Catálogo y filtros",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "03-detalle-tour",
+      "title": "Detalle de experiencia",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "04-comparador",
+      "title": "Comparación de tours",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "05-agencias-mapa",
+      "title": "Directorio de agencias",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "06-acceso",
+      "title": "Inicio de sesión y registro",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "07-registro-turista",
+      "title": "Registro público de turista",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "08-disponibilidad-reserva",
+      "title": "Disponibilidad y solicitud de reserva",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "09-mis-reservas",
+      "title": "Reservas del turista",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "10-voucher",
+      "title": "Voucher digital de reserva",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "11-cancelacion",
+      "title": "Cancelar reserva con motivo obligatorio",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "12-resena",
+      "title": "Reseña de experiencia completada",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "13-operador-resumen",
+      "title": "Resumen del operador",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "14-gestion-tours",
+      "title": "Catálogo de la agencia",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "15-editor-tour-video",
+      "title": "Edición de tour y video",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "16-programacion",
+      "title": "Agenda y cupos de agencia",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "17-operacion-reserva",
+      "title": "Detalle operativo de reserva",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "18-agencia-perfil-guias",
+      "title": "Perfil empresarial y guías",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "19-guia-salidas",
+      "title": "Salidas del guía",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "20-validacion-qr",
+      "title": "Validación de voucher",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "21-admin-catalogos",
+      "title": "Administración de entidades",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "22-admin-cuentas",
+      "title": "Cuentas de personal y permisos",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "23-reportes",
+      "title": "Reportes de coordinación",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "24-notificaciones",
+      "title": "Bandeja privada de notificaciones",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "25-pago-futuro",
+      "title": "Pago futuro en entorno de pruebas",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "26-mobile-explorar",
+      "title": "Móvil · Explorar",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "27-mobile-reservar",
+      "title": "Móvil · Solicitar reserva",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "28-mobile-voucher",
+      "title": "Móvil · Voucher",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "29-estados-interfaz",
+      "title": "Estados transversales de interfaz",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "30-admin-cierre-reserva",
+      "title": "Cierre administrativo de reserva",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "31-editor-guia",
+      "title": "Registro y edición de guía",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "32-admin-turistas",
+      "title": "Administración de turistas",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "33-admin-tipos-experiencia",
+      "title": "Tipos de experiencia",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "id": "34-sistema-visual",
+      "title": "Sistema visual y componentes",
+      "width": 1440,
+      "height": 1000
+    }
+  ]
+}
