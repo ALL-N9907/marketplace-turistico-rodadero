@@ -7,8 +7,17 @@ import { api, optional, query, write } from '../lib/api';
 import { dateTime, money, today } from '../lib/format';
 import type { Agency, Reservation, Slot, Tour, TourDetails, Video } from '../types';
 import { Coast, Empty, ErrorBox, Field, Heading, Loading, Notice, Section } from '../components/ui';
+import { PublicReviews } from '../components/PublicReviews';
+import { TourGallery } from '../components/TourGallery';
 
 export function TourDetail(){
+  const {id}=useParams();
+  // Comparte la consulta con el contenido; TanStack Query deduplica la solicitud.
+  const tour=useQuery({queryKey:['tour',id],queryFn:({signal})=>api<Tour>(`/api/tours/${id}`,{signal})});
+  return <><TourDetailContent/>{tour.data?.estado==='ACTIVE'&&<div className="container"><TourGallery tourId={Number(id)}/><PublicReviews key={id} tourId={Number(id)}/></div>}</>;
+}
+
+function TourDetailContent(){
   const {id}=useParams(),{user}=useAuth(),navigate=useNavigate(),client=useQueryClient();
   const [date,setDate]=useState(today()),[persons,setPersons]=useState(1),[search,setSearch]=useState<{date:string;persons:number}|null>(null),[slot,setSlot]=useState<number|null>(null);
   const tour=useQuery({queryKey:['tour',id],queryFn:({signal})=>api<Tour>(`/api/tours/${id}`,{signal})});

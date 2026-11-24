@@ -1,5 +1,7 @@
 # Funcionalidades del Prototipo: plataforma de agencias de turismo unificada para sector específico del rodadero
 
+> Configuración y límites actuales: [`guia_operativa.md`](guia_operativa.md).
+
 ## Funcionalidades para el Usuario Final (Turista / Viajero):
 
 1. **Vitrina y mapa geolocalizado:** Permite explorar de forma visual y rápida las agencias formales y los tours disponibles que operan desde el rodadero.
@@ -24,7 +26,9 @@
 
 Las secciones anteriores conservan la visión del producto. Este seguimiento
 distingue lo implementado en el backend de lo que todavía requiere otra etapa.
-No existe una interfaz web en este repositorio.
+La primera entrega fue de backend. Ahora existe una interfaz web React/TypeScript
+en `frontend/`, basada en las pantallas de `docs/diseno/`. Consume la API real;
+no utiliza datos ficticios en ejecución. Véase `frontend/README.md`.
 
 ### Decisiones confirmadas
 
@@ -69,34 +73,54 @@ proveedor: no equivalen a una carga real validada en una cuenta externa.
 
 | Funcionalidad | Estado actual | Pendiente |
 |---|---|---|
-| Vitrina y mapa | API de catálogo y coordenadas disponibles | Búsqueda por distancia e interfaz con mapa. |
-| Comparador | Búsqueda global por rangos y sostenibilidad; comparación de 2–6 tours | Interfaz visual y validación externa de las prácticas declaradas. |
-| Pagos | Proveedor elegido: Mercado Pago en pruebas | Modelo de pago, checkout, eventos firmados, idempotencia y conciliación. |
-| Voucher QR | Comprobante JSON, imagen PNG y canje único con autorización | Presentación visual/PDF y política explícita de zona horaria. |
-| Reseñas | API y servicio disponibles, sólo dueño y reserva completada | Listado público por tour, promedio de calificación y moderación. |
-| Acceso de agencias | Cuentas y autorización por agencia implementadas | Panel visual, recuperación de contraseña y administración completa del ciclo de cuentas. |
-| Perfil empresarial | Datos, búsqueda por nombre/dirección, coordenadas y URL de fotografía Cloudinary | Carga directa de fotografías y galería. |
-| Catálogo | CRUD, videos Cloudinary, itinerario, condiciones, sostenibilidad y filtros ampliados | Interfaz, moderación y búsqueda por disponibilidad combinada con todos los filtros. |
-| Programación | Crear/consultar/actualizar/eliminar horarios y asignar guías | Validar traslapes de guías en recorridos de varios días y concurrencia entre asignaciones. |
-| Reservas | Flujo de estados, control de cupos y autorización | Expiración acordada de pendientes, historial completo y vinculación con pagos. |
-| Notificaciones | Bandeja privada y correo persistente con reintentos | Configurar SMTP y probar entrega real; monitoreo/reenvío de fallos finales. |
-| Analítica | Ocupación, productividad, inasistencias y cancelaciones por tipo | Medición de visitas/interés y panel visual. |
+| Vitrina y mapa | Catálogo, directorio, Leaflet configurable y búsqueda por radio con consentimiento | Configurar proveedor cartográfico y coordenadas reales. |
+| Comparador | Búsqueda global y comparación visual de 2–6 tours de distintas agencias | Validación externa de las prácticas declaradas. |
+| Pagos | Checkout sandbox, verificación por API, HMAC, bandeja idempotente, reintentos y conciliación | Configurar/validar sandbox; producción/split/reembolsos desde la app no habilitados. |
+| Voucher QR | Voucher visual, impresión a PDF del navegador, PNG y canje autorizado sin ID | Configurar zona operativa; no hay PDF firmado de servidor. |
+| Reseñas | Gestión propia, listado público, promedio y moderación ADMIN con motivo | Revisión operativa de comentarios reales. |
+| Acceso de agencias | Sesiones HttpOnly, logout, revalidación, recuperación por correo y paneles | Configurar SMTP; sesiones compartidas si hay varias réplicas. |
+| Perfil empresarial | Panel de datos, coordenadas y fotografía por URL Cloudinary | Carga directa de fotografías y galería. |
+| Catálogo | CRUD visual, videos/galería firmados y filtros combinados con fecha/personas | Validar Cloudinary y contenido real. |
+| Programación | CRUD, bloqueo de guía y cruces de recorridos que comienzan días anteriores | Validación operativa con agenda real. |
+| Reservas | Flujo visual, cupos, historial, expiración opcional y pago independiente asociado | Decidir TTL (por defecto desactivado); auditoría adicional de notas/check-in. |
+| Notificaciones | Bandeja privada, cola SMTP, reintentos y panel ADMIN para reponer fallos | Configurar SMTP y verificar entrega real. |
+| Analítica | Panel de reportes, ocupación, productividad, inasistencias y cancelaciones por tipo | Medición de visitas/interés. |
 
 ### Etapas siguientes
 
 1. **Validar integraciones configuradas:** carga y eliminación real de video con su cuenta
    Cloudinary y entrega SMTP en un buzón de prueba. No se necesitan secretos en el repositorio.
-2. **Mercado Pago en pruebas:** estados de pago independientes de la reserva,
-   comprobación del pago desde el proveedor, firma de notificaciones y eventos idempotentes.
+2. **Validar Mercado Pago sandbox implementado:** credenciales, webhooks, compra de
+   prueba y conciliación externa. No activar cobros productivos.
 3. **Despliegue y endurecimiento:** migraciones versionadas para bases existentes,
    limitación de solicitudes/cargas, limpieza de cargas abandonadas, monitoreo y políticas de retención.
-4. **Ampliaciones del backend:** visitas/interés, galería de fotos, búsqueda por distancia,
-   recuperación de cuentas y condiciones de expiración de reservas pendientes.
-5. **Interfaz web:** vitrinas, mapa, reproductor y paneles; no forma parte de esta primera entrega.
+4. **Ampliaciones posteriores:** métricas con consentimiento, carga directa de fotos
+   de perfil de agencia y operación multirréplica. Galería de tours, cercanía,
+   recuperación y expiración configurable ya están implementadas.
+5. **Validar la interfaz web existente:** recorridos completos con el backend y datos reales,
+   permisos de cámara y accesibilidad. No confundir pruebas de navegador con dobles HTTP
+   con una validación de PostgreSQL o proveedores externos.
 
 El backend de QR y notificaciones está implementado y cubierto por pruebas. No se
 debe confundir un adaptador SMTP/Cloudinary probado con dobles HTTP con una entrega
-externa real verificada. Pagos y paneles siguen pendientes, no simulados como terminados.
+externa real verificada. Los paneles y el código de pagos sandbox existen;
+la validación con la cuenta externa del propietario sigue pendiente.
+
+### Ampliación: QR, reseñas e historial
+
+- `POST /api/reservations/check-in`: resuelve el QR y lo canjea en una transacción,
+  sin ID manual ni endpoint público de resolución. Conserva CSRF y control de uso único.
+- `GET /api/tours/{id}/reviews`: lista pública paginada con promedio global; omite
+  IDs de turista/reserva y datos de contacto. No incluye moderación automática.
+- `GET /api/reservations/{id}/history`: historial privado de creación y cambios de
+  estado, con fecha, estado previo/final, rol y motivo. El correo del actor se guarda
+  internamente, pero no se devuelve. No se reconstruyen cambios anteriores.
+- Nueva tabla `reservation_history`. Desarrollo: el perfil local puede crearla.
+  Bases existentes fuera de local: aplicar la migración aditiva documentada en
+  `docs/sql/20261123_reservation_history.sql`, sin borrar datos. No es una línea base
+  de todas las migraciones pendientes del proyecto.
+- Las pruebas PostgreSQL requieren Docker. Ya se ejecutaron en PostgreSQL temporal
+  de Testcontainers durante la entrega posterior de cuentas/pagos; véase la guía operativa.
 
 ### Evidencia técnica
 

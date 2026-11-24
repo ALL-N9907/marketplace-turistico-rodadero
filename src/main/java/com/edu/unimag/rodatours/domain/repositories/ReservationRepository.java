@@ -28,6 +28,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     Optional<Reservation> findByIdForUpdate(@Param("id") Long id);
 
     Optional<Reservation> findByCodigoQr(String codigoQr);
+    List<Reservation> findTop50ByEstadoAndFechaReservaBeforeOrderByIdAsc(ReservationStatus estado, LocalDateTime cutoff);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from Reservation r where r.codigoQr = :code")
+    Optional<Reservation> findByCodigoQrForUpdate(@Param("code") String code);
 
     List<Reservation> findByTuristaIdAndEstado(Long turistaId, ReservationStatus estado);
 

@@ -8,6 +8,7 @@ import { dateTime, money, reservationActions } from '../lib/format';
 import type { Reservation, Voucher } from '../types';
 import { Badge, Empty, ErrorBox, Field, Heading, Loading, Notice, Section } from '../components/ui';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ReservationHistory } from '../components/ReservationHistory';
 
 export function Reservations(){
   const {user}=useAuth();const [status,setStatus]=useState('');
@@ -20,14 +21,14 @@ export function ReservationTable({reservations,workspace=false}:{reservations:Re
 function PrivateQr({id}:{id:number}){
   const [url,setUrl]=useState(''),[error,setError]=useState<unknown>(null);
   useEffect(()=>{const abort=new AbortController();let objectUrl='';apiBlob(`/api/reservations/${id}/voucher/qr`,abort.signal).then(blob=>{if(abort.signal.aborted)return;objectUrl=URL.createObjectURL(blob);setUrl(objectUrl);}).catch(e=>{if(!abort.signal.aborted)setError(e);});return()=>{abort.abort();if(objectUrl)URL.revokeObjectURL(objectUrl);};},[id]);
-  return <div className="private-qr"><ErrorBox error={error}/>{url?<><img src={url} alt={`Código QR privado de la reserva RT-${id}`}/><a className="button secondary" href={url} download={`reserva-${id}-qr.png`}><Download size={18}/> Descargar QR</a></>:!error&&<Loading/>}</div>;
+  return <div className="private-qr"><ErrorBox error={error}/>{url?<><img src={url} alt={`Código QR privado de la reserva RT-${id}`}/><a className="button secondary" href={url} download={`reserva-${id}-qr.png`}><Download size={18}/> Descargar QR</a><button className="button secondary no-print" onClick={()=>window.print()}>Imprimir / guardar voucher como PDF</button></>:!error&&<Loading/>}</div>;
 }
 export function ReservationDetail(){
   const {id}=useParams(),{user}=useAuth(),client=useQueryClient(),location=useLocation();
   const [action,setAction]=useState('');
   const result=useQuery({queryKey:['reservation',user?.email,id],queryFn:({signal})=>api<Reservation>(`/api/reservations/${id}`,{signal})});
   const voucher=useQuery({queryKey:['voucher',user?.email,id],queryFn:({signal})=>api<Voucher>(`/api/reservations/${id}/voucher`,{signal}),enabled:!!result.data});
-  const update=useMutation({mutationFn:(body:unknown)=>write<Reservation>(`/api/reservations/${id}/${action}`,'PUT',body),onSuccess:async()=>{setAction('');await Promise.all([client.invalidateQueries({queryKey:['reservation']}),client.invalidateQueries({queryKey:['voucher']}),client.invalidateQueries({queryKey:['my-reservations']}),client.invalidateQueries({queryKey:['operation-reservations']}),client.invalidateQueries({queryKey:['availability']})]);},onError:()=>{void client.invalidateQueries({queryKey:['reservation']});}});
+  const update=useMutation({mutationFn:(body:unknown)=>write<Reservation>(`/api/reservations/${id}/${action}`,'PUT',body),onSuccess:async()=>{setAction('');await Promise.all([client.invalidateQueries({queryKey:['reservation']}),client.invalidateQueries({queryKey:['voucher']}),client.invalidateQueries({queryKey:['my-reservations']}),client.invalidateQueries({queryKey:['operation-reservations']}),client.invalidateQueries({queryKey:['availability']}),client.invalidateQueries({queryKey:['reservation-history']})]);},onError:()=>{void client.invalidateQueries({queryKey:['reservation']});}});
   if(result.isPending)return <Loading/>;
   if(!result.data||!user)return <ErrorBox error={result.error}/>;
   const r=result.data,v=voucher.data,actions=reservationActions(user,r),workspace=location.pathname.startsWith('/panel');
@@ -49,6 +50,7 @@ export function ReservationDetail(){
           {v?.checkedInAt&&<div><dt>Check-in registrado</dt><dd>{dateTime(v.checkedInAt)}</dd></div>}
         </dl>
         <div className="form-actions">
+          <Link className="button secondary" to={`/pagos?reservaId=${r.id}`}>Pago sandbox / consultar estado</Link>
           {actions.confirm&&<button className="button" onClick={()=>{update.reset();setAction('confirm');}}>Confirmar reserva</button>}
           {actions.cancel&&<button className="button secondary" onClick={()=>{update.reset();setAction('cancel');}}>Cancelar con motivo</button>}
           {actions.complete&&<button className="button" onClick={()=>{update.reset();setAction('complete');}}>Marcar completada</button>}
@@ -57,8 +59,9 @@ export function ReservationDetail(){
           {actions.checkIn&&<Link className="button secondary" to={`/panel/validar?reservaId=${r.id}`}><QrCode size={18}/> Validar acceso</Link>}
         </div>
       </Section>
-      <Section title="Voucher digital"><ErrorBox error={voucher.error}/>{r.estado==='CONFIRMED'?<><PrivateQr id={r.id}/><Notice>Canje único el día de la salida. El check-in no completa automáticamente la reserva.</Notice></>:<Notice>Estado: <Badge status={r.estado}/>. El QR para acceso se muestra cuando la reserva está confirmada.</Notice>}</Section>
+      <Section title="Voucher digital" className="voucher-print"><ErrorBox error={voucher.error}/>{r.estado==='CONFIRMED'?<><h3>{v?.tour||`Reserva RT-${r.id}`}</h3><p>{v?.agency} · RT-{r.id}<br/>{dateTime(r.fechaInicio)}<br/>{r.cantidadPersonas} personas · {money(r.precioTotal)}</p><PrivateQr id={r.id}/><Notice>Canje único el día de la salida. No es un comprobante de pago. El check-in no completa automáticamente la reserva.</Notice></>:<Notice>Estado: <Badge status={r.estado}/>. El QR para acceso se muestra cuando la reserva está confirmada.</Notice>}</Section>
     </div>
+    <ReservationHistory key={r.id} reservationId={r.id}/>
     {action&&<ConfirmDialog title={{confirm:'Confirmar reserva',cancel:'Cancelar reserva',complete:'Completar experiencia','no-show':'Registrar inasistencia'}[action]||''} busy={update.isPending} onCancel={()=>setAction('')} onSubmit={e=>{
       e.preventDefault();const f=new FormData(e.currentTarget);
       if(action==='cancel'&&!String(f.get('motivo')||'').trim())return;

@@ -233,6 +233,11 @@ class SecurityIntegrationTest {
 
     @Test
     void availabilityShowsPendingHoldsNotRawStock() throws Exception {
+        mvc.perform(get("/api/catalog/tours").param("date", reservation.getHorario().getFechaTour().toString()).param("persons", "9"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/catalog/tours").param("date", reservation.getHorario().getFechaTour().toString()).param("persons", "10"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/catalog/tours").param("persons", "2")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/availability/tours/{id}", ownTour.getId())
                         .param("fecha", reservation.getHorario().getFechaTour().toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].cuposDisponibles").value(9));
@@ -296,7 +301,60 @@ class SecurityIntegrationTest {
         mvc.perform(post("/api/reviews").with(httpBasic("ana@example.com", password)).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.calificacion").value(5));
+        mvc.perform(get("/api/tours/{id}/reviews", ownTour.getId()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.averageRating").value(5.0))
+                .andExpect(jsonPath("$.content[0].comment").value("Excelente"))
+                .andExpect(jsonPath("$.content[0].reservaId").doesNotExist())
+                .andExpect(content().string(not(containsString("ana@example.com"))));
         mvc.perform(post("/api/reviews").with(httpBasic("ana@example.com", password)).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isConflict());
+    }
+
+    @Test
+    void qrOnlyCheckInIsScopedAndSingleUse() throws Exception {
+        reservation.setEstado(ReservationStatus.CONFIRMED);
+        reservation.getHorario().setFechaTour(LocalDate.now());
+        em.flush();
+        String body = "{\"qrPayload\":\"rodatours:reservation:" + reservation.getCodigoQr() + "\"}";
+        mvc.perform(post("/api/reservations/check-in").with(httpBasic("ana@example.com", password)).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/reservations/check-in").with(httpBasic("operator@example.com", password))
+                        .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/reservations/check-in").with(httpBasic("operator@example.com", password)).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.reservationId").value(reservation.getId()))
+                .andExpect(jsonPath("$.status").value("CONFIRMED"));
+        mvc.perform(post("/api/reservations/check-in").with(httpBasic("operator@example.com", password)).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isConflict());
+    }
+
+    @Test
+    void qrOnlyCheckInHidesForeignReservations() throws Exception {
+        var schedule = persist(TourSchedule.builder().tour(foreignTour).fechaTour(LocalDate.now())
+                .horaInicio(LocalTime.NOON).cuposTotales(10).cuposDisponibles(9).build());
+        var foreign = persist(Reservation.builder().turista(tourist).horario(schedule)
+                .fechaInicio(schedule.getStartDateTime()).fechaFin(schedule.calculateEndDateTime())
+                .cantidadPersonas(1).precioTotal(new BigDecimal("100000")).estado(ReservationStatus.CONFIRMED).build());
+        em.flush();
+        mvc.perform(post("/api/reservations/check-in").with(httpBasic("operator@example.com", password)).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"qrPayload\":\"rodatours:reservation:" + foreign.getCodigoQr() + "\"}"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.reservationId").doesNotExist());
+    }
+
+    @Test
+    void stateHistoryIsPrivateAndRejectedTransitionDoesNotAddAnEntry() throws Exception {
+        mvc.perform(put("/api/reservations/{id}/confirm", reservation.getId())
+                        .with(httpBasic("admin@example.com", password)).with(csrf())).andExpect(status().isOk());
+        mvc.perform(put("/api/reservations/{id}/confirm", reservation.getId())
+                        .with(httpBasic("admin@example.com", password)).with(csrf())).andExpect(status().isConflict());
+        mvc.perform(get("/api/reservations/{id}/history", reservation.getId())).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/reservations/{id}/history", reservation.getId()).with(httpBasic("ana@example.com", password)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].previousStatus").value("SCHEDULED"))
+                .andExpect(jsonPath("$.content[0].status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.content[0].actorRole").value("ADMIN"))
+                .andExpect(jsonPath("$.content[0].actorEmail").doesNotExist());
     }
 }

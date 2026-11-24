@@ -2,6 +2,9 @@ package com.edu.unimag.rodatours.services;
 
 import com.edu.unimag.rodatours.api.dtos.response.TourResponse;
 import com.edu.unimag.rodatours.domain.entities.Tour;
+import com.edu.unimag.rodatours.domain.entities.TourSchedule;
+import com.edu.unimag.rodatours.domain.entities.Reservation;
+import com.edu.unimag.rodatours.domain.entities.enums.ReservationStatus;
 import com.edu.unimag.rodatours.domain.entities.enums.AgencyStatus;
 import com.edu.unimag.rodatours.domain.entities.enums.DifficultyLevel;
 import com.edu.unimag.rodatours.domain.entities.enums.TourStatus;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import jakarta.persistence.criteria.Predicate;
@@ -31,6 +35,8 @@ public class CatalogService {
 
     @Transactional(readOnly = true)
     public SearchResponse search(Filter filter, int page, int size) {
+        var now = java.time.LocalDateTime.now();
+        if (filter.persons() != null && filter.date() == null) throw new ValidationException("Indique una fecha para filtrar por cantidad de personas.");
         if (filter.minPrice() != null && filter.maxPrice() != null && filter.minPrice().compareTo(filter.maxPrice()) > 0
                 || filter.minHours() != null && filter.maxHours() != null && filter.minHours().compareTo(filter.maxHours()) > 0) {
             throw new ValidationException("Los rangos de precio y duración deben estar en orden ascendente.");
@@ -52,6 +58,21 @@ public class CatalogService {
             if (filter.maxHours() != null) { predicates.add(cb.lessThanOrEqualTo(root.get("duracionHoras"), filter.maxHours())); }
             if (filter.supportsCommunities() != null) { predicates.add(cb.equal(root.get("apoyoComunidades"), filter.supportsCommunities())); }
             if (filter.environmentalPractices() != null) { predicates.add(cb.equal(root.get("practicasAmbientales"), filter.environmentalPractices())); }
+            if (filter.date() != null) {
+                var slots = query.subquery(Long.class);
+                var schedule = slots.from(TourSchedule.class);
+                var holds = slots.subquery(Long.class);
+                var reservation = holds.from(Reservation.class);
+                holds.select(cb.coalesce(cb.sumAsLong(reservation.<Integer>get("cantidadPersonas")), 0L));
+                holds.where(cb.equal(reservation.get("horario"), schedule), cb.equal(reservation.get("estado"), ReservationStatus.SCHEDULED));
+                slots.select(schedule.get("id"));
+                slots.where(cb.equal(schedule.get("tour"), root), cb.equal(schedule.get("fechaTour"), filter.date()),
+                        cb.greaterThanOrEqualTo(cb.diff(schedule.get("cuposDisponibles").as(Long.class), holds),
+                                filter.persons() == null ? 1L : filter.persons().longValue()),
+                        cb.or(cb.greaterThan(schedule.get("fechaTour"), now.toLocalDate()),
+                                cb.and(cb.equal(schedule.get("fechaTour"), now.toLocalDate()), cb.greaterThan(schedule.get("horaInicio"), now.toLocalTime()))));
+                predicates.add(cb.exists(slots));
+            }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
         var result = tours.findAll(specification, PageRequest.of(page, size, Sort.by("precio").ascending().and(Sort.by("id"))));
@@ -114,7 +135,9 @@ public class CatalogService {
     public record Filter(@Size(max = 120) String destination, @Positive Long agencyId, @Positive Long experienceTypeId,
                          DifficultyLevel difficulty, @DecimalMin("0.01") BigDecimal minPrice, @DecimalMin("0.01") BigDecimal maxPrice,
                          @DecimalMin("0.1") BigDecimal minHours, @DecimalMin("0.1") BigDecimal maxHours,
-                         Boolean supportsCommunities, Boolean environmentalPractices) {}
+                          Boolean supportsCommunities, Boolean environmentalPractices,
+                          @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate date,
+                          @Positive Integer persons) {}
     public record TourDetails(@Size(max = 10000) String itinerary, @Size(max = 10000) String conditions,
                               boolean supportsCommunities, boolean environmentalPractices) {}
     public record AgencyLocation(@DecimalMin("-90") @DecimalMax("90") BigDecimal latitude,

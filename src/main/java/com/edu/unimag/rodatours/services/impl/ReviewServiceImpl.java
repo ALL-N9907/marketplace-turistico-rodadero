@@ -52,7 +52,9 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public ReviewResponse getById(Long id) {
-        return ReviewMapper.toResponse(findReviewOrThrow(id));
+        Review review = findReviewOrThrow(id);
+        if (!review.isPublished()) throw new ResourceNotFoundException("Reseña no disponible.");
+        return ReviewMapper.toResponse(review);
     }
 
     @Override

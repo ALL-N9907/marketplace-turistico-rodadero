@@ -12,6 +12,9 @@ import java.util.Optional;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     Page<Notification> findByRecipientEmailIgnoreCaseOrderByCreatedAtDesc(String email, Pageable pageable);
     Optional<Notification> findByIdAndRecipientEmailIgnoreCase(Long id, String email);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select n from Notification n where n.id = :id")
+    Optional<Notification> lockById(@org.springframework.data.repository.query.Param("id") Long id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Notification> findTop20ByEmailSentAtIsNullAndDeliveryAttemptsLessThanAndNextAttemptAtLessThanEqualOrderByIdAsc(

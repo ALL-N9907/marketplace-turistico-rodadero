@@ -87,6 +87,8 @@ class ReservationConcurrencyIntegrationTest {
         new TransactionTemplate(manager).executeWithoutResult(status -> {
             em.createQuery("delete from Notification n where n.reservationId in (select r.id from Reservation r where r.turista.id = :id)")
                     .setParameter("id", touristId).executeUpdate();
+            em.createQuery("delete from ReservationHistoryEntry h where h.reservation.turista.id = :id")
+                    .setParameter("id", touristId).executeUpdate();
             em.createQuery("delete from Reservation r where r.turista.id = :id").setParameter("id", touristId).executeUpdate();
             em.createQuery("delete from TourSchedule s where s.id in :ids")
                     .setParameter("ids", List.of(firstSchedule, secondSchedule)).executeUpdate();

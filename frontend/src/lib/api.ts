@@ -22,6 +22,7 @@ async function response(path: string, init: RequestInit = {}) {
     throw new ApiError(0, 'No pudimos conectar con el servidor. Comprueba que Spring Boot esté disponible.');
   }
   if (!result.ok) {
+    if(result.status===401&&typeof window!=='undefined')window.dispatchEvent(new Event('rodatours:unauthorized'));
     const problem = await result.json().catch(() => ({}));
     throw new ApiError(result.status, problem.detail || problem.title || `Error del servidor (${result.status}).`, problem.errors || {});
   }

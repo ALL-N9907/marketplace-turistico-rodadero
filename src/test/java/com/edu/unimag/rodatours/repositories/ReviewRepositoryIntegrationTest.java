@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -69,5 +71,22 @@ class ReviewRepositoryIntegrationTest extends BaseRepositoryIntegrationTest {
         Tourist turista = TestDataFactory.tourist(entityManager, key);
         return TestDataFactory.reservation(entityManager, turista, schedule, ReservationStatus.COMPLETED,
                 LocalDateTime.of(TestDataFactory.FECHA_TOUR, LocalTime.of(9, 0)), 1);
+    }
+
+    @Test
+    void publicQueryPagesByTourAndOnlyCountsCompletedReservations() {
+        Reservation completed = reserva("public-completed");
+        TestDataFactory.review(entityManager, completed, 5);
+        Reservation pending = TestDataFactory.reservation(entityManager, completed.getTurista(), completed.getHorario(),
+                ReservationStatus.SCHEDULED, completed.getFechaInicio().plusHours(3), 1);
+        TestDataFactory.review(entityManager, pending, 1);
+        Reservation otherTour = reserva("other-tour");
+        TestDataFactory.review(entityManager, otherTour, 2);
+        entityManager.flush();
+        var result = repository.findByReservaHorarioTourIdAndReservaEstado(completed.getHorario().getTour().getId(),
+                ReservationStatus.COMPLETED, PageRequest.of(0, 5, Sort.by("id").descending()));
+        assertEquals(1, result.getTotalElements());
+        assertEquals(5, result.getContent().getFirst().getCalificacion());
+        assertEquals(5.0, repository.averageByTour(completed.getHorario().getTour().getId(), ReservationStatus.COMPLETED));
     }
 }

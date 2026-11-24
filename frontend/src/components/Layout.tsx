@@ -16,6 +16,7 @@ export const workspaceLinks: { to: string; label: string; roles: Role[] }[] = [
   { to: '/panel/turistas', label: 'Turistas', roles: ['ADMIN'] },
   { to: '/panel/categorias', label: 'Tipos de experiencia', roles: ['ADMIN'] },
   { to: '/panel/cuentas', label: 'Cuentas de personal', roles: ['ADMIN'] },
+  { to: '/panel/operaciones', label: 'Entregas y moderación', roles: ['ADMIN'] },
   { to: '/panel/reportes', label: 'Reportes', roles: ['ADMIN','AGENCY_OPERATOR','COORDINATOR'] },
 ];
 export function Brand() { return <Link className="brand" to="/" aria-label="Rodatours, inicio"><span className="brand-icon"><Compass size={23}/></span><span><b>roda</b>tours<span className="brand-dot">.</span></span></Link>; }

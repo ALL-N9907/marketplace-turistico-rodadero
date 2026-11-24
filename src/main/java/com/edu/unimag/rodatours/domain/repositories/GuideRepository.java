@@ -11,6 +11,9 @@ import java.util.Optional;
  * Consultas del catálogo de guías y de sus salidas asignadas.
  */
 public interface GuideRepository extends JpaRepository<Guide, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select g from Guide g where g.id = :id")
+    Optional<Guide> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
 
     Optional<Guide> findByDocumentoIdentidad(String documentoIdentidad);
 

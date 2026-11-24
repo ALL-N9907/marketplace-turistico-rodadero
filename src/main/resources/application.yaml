@@ -22,16 +22,40 @@ spring:
       mail.smtp.writetimeout: 5000
 
 rodatours:
+  reservations:
+    pending-ttl-minutes: ${RESERVATION_PENDING_TTL_MINUTES:0}
   notifications:
     mail-enabled: ${MAIL_ENABLED:false}
     from: ${SMTP_FROM:no-reply@localhost}
   bootstrap:
     admin-email: ${ADMIN_EMAIL:}
     admin-password: ${ADMIN_PASSWORD:}
+  password-reset:
+    enabled: ${PASSWORD_RESET_ENABLED:false}
+    encryption-key: ${RESET_ENCRYPTION_KEY:}
+    frontend-url: ${APP_PUBLIC_URL:}
+  payments:
+    enabled: ${MP_ENABLED:false}
+    access-token: ${MP_ACCESS_TOKEN:}
+    webhook-secret: ${MP_WEBHOOK_SECRET:}
+    collector-id: ${MP_COLLECTOR_ID:}
+    frontend-url: ${APP_PUBLIC_URL:}
+    notification-url: ${MP_NOTIFICATION_URL:}
   cloudinary:
     cloud-name: ${CLOUDINARY_CLOUD_NAME:}
     api-key: ${CLOUDINARY_API_KEY:}
     api-secret: ${CLOUDINARY_API_SECRET:}
     upload-preset: ${CLOUDINARY_VIDEO_PRESET:}
+    image-upload-preset: ${CLOUDINARY_IMAGE_PRESET:}
     max-bytes: 52428800
     max-duration-seconds: 120
+
+server:
+  servlet:
+    session:
+      timeout: 30m
+      tracking-modes: cookie
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}

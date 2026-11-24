@@ -172,7 +172,7 @@ public class TourScheduleServiceImpl implements TourScheduleService {
         if (guiaId == null) {
             return null;
         }
-        Guide guide = guideRepository.findById(guiaId)
+        Guide guide = guideRepository.findByIdForUpdate(guiaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Guía no encontrado con id: " + guiaId));
 
         if (!guide.isActive()) {
@@ -183,11 +183,11 @@ public class TourScheduleServiceImpl implements TourScheduleService {
         }
 
         LocalDateTime start = LocalDateTime.of(fechaTour, horaInicio);
-        long minutes = (long) (tour.getDuracionHoras().doubleValue() * 60);
+        long minutes = tour.getDuracionHoras().multiply(java.math.BigDecimal.valueOf(60)).longValue();
         LocalDateTime end = start.plusMinutes(minutes);
 
-        boolean hasOverlap = tourScheduleRepository.findByGuiaIdAndFechaTourInOrderByHoraInicioAsc(
-                        guiaId, List.of(start.toLocalDate(), end.toLocalDate())).stream()
+        boolean hasOverlap = tourScheduleRepository.findByGuiaIdAndFechaTourLessThanEqualOrderByFechaTourAscHoraInicioAsc(
+                        guiaId, end.toLocalDate()).stream()
                 .filter(existing -> excludeScheduleId == null || !existing.getId().equals(excludeScheduleId))
                 .anyMatch(existing -> {
                     LocalDateTime sStart = existing.getStartDateTime();

@@ -7,8 +7,12 @@ import type { Tour, TourDetails, UploadAuthorization, Video } from '../types';
 import { EntityManager, type FormField } from '../components/EntityManager';
 import { ErrorBox, Field, Heading, Loading, Notice, Section } from '../components/ui';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { TourGalleryEditor } from '../components/TourGallery';
 
 export function TourContent(){
+  const {id}=useParams();return <><TourContentBody/><TourGalleryEditor tourId={id!}/></>;
+}
+function TourContentBody(){
   const {id}=useParams(),client=useQueryClient(),[saved,setSaved]=useState(false);
   const tour=useQuery({queryKey:['tour',id],queryFn:({signal})=>api<Tour>(`/api/tours/${id}`,{signal})});
   const details=useQuery({queryKey:['tour-details',id],queryFn:({signal})=>api<TourDetails>(`/api/tours/${id}/details`,{signal})});

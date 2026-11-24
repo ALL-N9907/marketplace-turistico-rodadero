@@ -1,5 +1,8 @@
 # Primera etapa: cuentas, permisos y videos de tours
 
+> La entrega actual incorpora sesiones, recuperación, pagos sandbox, galería y
+> moderación. La configuración vigente está en [`guia_operativa.md`](guia_operativa.md).
+
 ## Ejecutar localmente
 
 Se requiere Java 21 y PostgreSQL. Configure las variables de entorno del proceso:
@@ -25,9 +28,10 @@ después de crear el primer administrador. No hay contraseñas predeterminadas.
 
 ## Autenticación
 
-Las solicitudes autenticadas usan HTTP Basic (correo y contraseña). Requiere
-**HTTPS** fuera de desarrollo. No se implementan JWT ni recuperación de contraseñas
-en esta etapa.
+La SPA usa login JSON y una sesión de servidor con cookie HttpOnly/SameSite,
+restauración y logout. HTTP Basic se conserva para clientes API. Se requiere
+**HTTPS** fuera de desarrollo; configurar `SESSION_COOKIE_SECURE=true`.
+La recuperación por correo existe y requiere SMTP y clave de cifrado según la guía.
 
 - `GET /api/auth/csrf`: obtiene `headerName`, `parameterName` y `token`.
   Conserve la cookie de sesión y envíe el token en la cabecera indicada en cada escritura.
@@ -227,6 +231,10 @@ de video simulado. Debe validarse una carga real en su cuenta antes del desplieg
 
 ## Próximas etapas confirmadas
 
-Mercado Pago **en pruebas** sigue pendiente; no se configuraron cobros. También
-faltan las interfaces web, migraciones de producción y las ampliaciones indicadas
-en el seguimiento de `funcionalidades.md`.
+La ampliación de QR sin ID, reseñas públicas y registro de estados está documentada
+en [`ampliacion_qr_resenas_historial.md`](ampliacion_qr_resenas_historial.md).
+El frontend ya incluye paneles, reproductor, mapa configurable y voucher visual.
+
+Mercado Pago **en pruebas** está implementado y deshabilitado sin configuración;
+no se han hecho cobros externos. Siguen pendientes la prueba en la cuenta del
+propietario y las ampliaciones/productivización enumeradas en `guia_operativa.md`.

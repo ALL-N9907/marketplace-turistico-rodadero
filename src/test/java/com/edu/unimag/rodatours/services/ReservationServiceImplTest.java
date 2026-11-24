@@ -26,6 +26,7 @@ import com.edu.unimag.rodatours.services.exceptions.BusinessException;
 import com.edu.unimag.rodatours.services.exceptions.ConflictException;
 import com.edu.unimag.rodatours.services.exceptions.ResourceNotFoundException;
 import com.edu.unimag.rodatours.services.impl.ReservationServiceImpl;
+import com.edu.unimag.rodatours.history.ReservationStateChanged;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,16 @@ class ReservationServiceImplTest {
     private Agency activeAgency;
     private Tour activeTour;
     private TourSchedule futureSchedule;
+
+    private void verifyHistory(ReservationStatus from, ReservationStatus to, String reason) {
+        var captor = org.mockito.ArgumentCaptor.forClass(ReservationStateChanged.class);
+        verify(events).publishEvent(captor.capture());
+        assertEquals(100L, captor.getValue().reservationId());
+        assertEquals(from, captor.getValue().previousStatus());
+        assertEquals(to, captor.getValue().status());
+        assertEquals(reason, captor.getValue().reason());
+        assertNotNull(captor.getValue().occurredAt());
+    }
 
     @BeforeEach
     void setUp() {
@@ -118,6 +129,7 @@ class ReservationServiceImplTest {
         });
 
         ReservationResponse response = reservationService.create(request);
+        verifyHistory(null, ReservationStatus.SCHEDULED, null);
 
         assertNotNull(response);
         assertEquals(100L, response.id());
@@ -227,6 +239,7 @@ class ReservationServiceImplTest {
         when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ReservationResponse response = reservationService.confirm(100L);
+        verifyHistory(ReservationStatus.SCHEDULED, ReservationStatus.CONFIRMED, null);
 
         assertEquals(ReservationStatus.CONFIRMED, response.estado());
         assertEquals(6, futureSchedule.getCuposDisponibles());
@@ -245,6 +258,7 @@ class ReservationServiceImplTest {
         when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
 
         assertThrows(ConflictException.class, () -> reservationService.confirm(100L));
+        verifyNoInteractions(events);
         verify(tourScheduleRepository, never()).findByIdForUpdate(any());
     }
 
@@ -265,6 +279,7 @@ class ReservationServiceImplTest {
         when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ReservationResponse response = reservationService.cancel(100L, new CancelReservationRequest("Vuelo retrasado"));
+        verifyHistory(ReservationStatus.CONFIRMED, ReservationStatus.CANCELLED, "Vuelo retrasado");
 
         assertEquals(ReservationStatus.CANCELLED, response.estado());
         assertEquals("Vuelo retrasado", response.motivoCancelacion());
@@ -287,6 +302,7 @@ class ReservationServiceImplTest {
         when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ReservationResponse response = reservationService.cancel(100L, new CancelReservationRequest("Cambio de fecha"));
+        verifyHistory(ReservationStatus.SCHEDULED, ReservationStatus.CANCELLED, "Cambio de fecha");
 
         assertEquals(ReservationStatus.CANCELLED, response.estado());
         assertEquals(10, futureSchedule.getCuposDisponibles());
@@ -368,6 +384,7 @@ class ReservationServiceImplTest {
         when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ReservationResponse response = reservationService.complete(100L, "Todo sin novedad");
+        verifyHistory(ReservationStatus.CONFIRMED, ReservationStatus.COMPLETED, "Todo sin novedad");
 
         assertEquals(ReservationStatus.COMPLETED, response.estado());
         assertEquals("Todo sin novedad", response.observaciones());
@@ -403,6 +420,7 @@ class ReservationServiceImplTest {
         when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ReservationResponse response = reservationService.markNoShow(100L);
+        verifyHistory(ReservationStatus.CONFIRMED, ReservationStatus.NO_SHOW, null);
 
         assertEquals(ReservationStatus.NO_SHOW, response.estado());
     }

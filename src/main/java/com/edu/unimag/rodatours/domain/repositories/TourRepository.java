@@ -15,6 +15,9 @@ import java.util.List;
  * Consultas del catálogo de tours y de disponibilidad por destino y fecha.
  */
 public interface TourRepository extends JpaRepository<Tour, Long>, JpaSpecificationExecutor<Tour> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select t from Tour t where t.id = :id")
+    java.util.Optional<Tour> findByIdForUpdate(@Param("id") Long id);
 
     List<Tour> findByAgenciaId(Long agenciaId);
 

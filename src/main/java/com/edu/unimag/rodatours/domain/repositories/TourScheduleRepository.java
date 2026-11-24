@@ -28,6 +28,7 @@ public interface TourScheduleRepository extends JpaRepository<TourSchedule, Long
     boolean existsByTourIdAndGuiaIsNotNull(Long tourId);
 
     List<TourSchedule> findByGuiaIdAndFechaTourInOrderByHoraInicioAsc(Long guiaId, Collection<LocalDate> fechas);
+    List<TourSchedule> findByGuiaIdAndFechaTourLessThanEqualOrderByFechaTourAscHoraInicioAsc(Long guiaId, LocalDate fecha);
 
     @Query("""
             select s from TourSchedule s
@@ -67,8 +68,8 @@ public interface TourScheduleRepository extends JpaRepository<TourSchedule, Long
             return false;
         }
 
-        return findByGuiaIdAndFechaTourInOrderByHoraInicioAsc(
-                guiaId, List.of(inicio.toLocalDate(), fin.toLocalDate())).stream()
+        return findByGuiaIdAndFechaTourLessThanEqualOrderByFechaTourAscHoraInicioAsc(
+                guiaId, fin.toLocalDate()).stream()
                 .anyMatch(schedule -> {
                     LocalDateTime scheduleStart = schedule.getStartDateTime();
                     LocalDateTime scheduleEnd = schedule.calculateEndDateTime();

@@ -46,6 +46,18 @@ public class Review {
     @Column(name = "comentario", columnDefinition = "TEXT")
     private String comentario;
 
+    @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("true")
+    @Builder.Default
+    private boolean published = true;
+
+    @Column(name = "moderation_reason", length = 1000)
+    private String moderationReason;
+
+    @Version
+    @org.hibernate.annotations.ColumnDefault("0")
+    private Long version;
+
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 

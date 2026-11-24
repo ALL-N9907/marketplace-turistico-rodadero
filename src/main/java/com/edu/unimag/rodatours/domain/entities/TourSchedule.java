@@ -97,7 +97,7 @@ public class TourSchedule {
         if (start == null || this.tour == null || this.tour.getDuracionHoras() == null) {
             return null;
         }
-        long minutes = (long) (this.tour.getDuracionHoras().doubleValue() * 60);
+        long minutes = this.tour.getDuracionHoras().multiply(java.math.BigDecimal.valueOf(60)).longValue();
         return start.plusMinutes(minutes);
     }
 

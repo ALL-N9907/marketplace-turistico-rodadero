@@ -28,7 +28,30 @@ function QrScanner({onRead}:{onRead:(value:string)=>void}){
   return <><div id={id}/><ErrorBox error={error}/><small>La cámara requiere HTTPS o localhost y permiso del navegador. Leer el QR no realiza el canje.</small></>;
 }
 export function CheckIn(){
-  const [params]=useSearchParams();const [payload,setPayload]=useState(''),[camera,setCamera]=useState(false),client=useQueryClient();
-  const mutation=useMutation({mutationFn:({id,qrPayload}:{id:number;qrPayload:string})=>write<Voucher>(`/api/reservations/${id}/check-in`,'POST',{qrPayload}),onSuccess:()=>{setCamera(false);void client.invalidateQueries({queryKey:['voucher']});}});
-  return <><Heading title="Valida el acceso a la experiencia">Una reserva confirmada, una salida hoy y un único canje autorizado.</Heading><div className="two-panels"><Section title="Leer voucher"><button className="button secondary" onClick={()=>setCamera(!camera)}><Camera size={18}/> {camera?'Cerrar lector':'Abrir lector de cámara o imagen'}</button>{camera&&<QrScanner onRead={v=>{setPayload(v);setCamera(false);mutation.reset();}}/>}<form onSubmit={e=>{e.preventDefault();mutation.mutate({id:Number(new FormData(e.currentTarget).get('id')),qrPayload:payload.trim()});}}><Field label="ID de reserva"><input name="id" type="number" min={1} step={1} required defaultValue={params.get('reservaId')||''}/></Field><Field label="Contenido del QR"><textarea value={payload} onChange={e=>{setPayload(e.target.value);mutation.reset();}} placeholder="rodatours:reservation:…" required maxLength={150}/></Field><button className="button" disabled={mutation.isPending||!payload.trim()}><QrCode size={18}/>{mutation.isPending?'Validando…':'Validar y registrar acceso'}</button></form></Section><Section title="Resultado de validación"><ErrorBox error={mutation.error}/>{mutation.data?<div className="checkin-success"><CheckCircle2 size={42}/><h2>Acceso registrado</h2><h3>{mutation.data.tour}</h3><p>RT-{mutation.data.reservationId} · {mutation.data.persons} personas</p><p>{mutation.data.checkedInAt&&dateTime(mutation.data.checkedInAt)}</p><Link to={`/panel/reservas/${mutation.data.reservationId}`}>Abrir reserva →</Link></div>:<Empty title="Esperando un voucher">El resultado sólo aparecerá después de la respuesta del servidor.</Empty>}<Notice>El check-in no completa la experiencia ni modifica cupos. Un segundo uso o una fecha distinta devuelve conflicto 409.</Notice></Section></div></>;
+  const [payload,setPayload]=useState(''),[camera,setCamera]=useState(false),client=useQueryClient();
+  const mutation=useMutation({
+    mutationFn:(qrPayload:string)=>write<Voucher>('/api/reservations/check-in','POST',{qrPayload}),
+    onSuccess:()=>{setCamera(false);void client.invalidateQueries({queryKey:['voucher']});},
+  });
+  return <>
+    <Heading title="Valida el acceso a la experiencia">Escanea el QR: ya no necesitas introducir el ID de la reserva.</Heading>
+    <div className="two-panels">
+      <Section title="Leer voucher">
+        <button className="button secondary" disabled={mutation.isPending} onClick={()=>setCamera(!camera)}><Camera size={18}/> {camera?'Cerrar lector':'Abrir lector de cámara o imagen'}</button>
+        {camera&&<QrScanner onRead={v=>{setPayload(v);setCamera(false);mutation.reset();}}/>}
+        <form onSubmit={e=>{e.preventDefault();mutation.mutate(payload.trim());}}>
+          <Field label="Contenido del QR" hint="También puedes pegar el contenido completo de un QR de Rodatours.">
+            <textarea value={payload} disabled={mutation.isPending} onChange={e=>{setPayload(e.target.value);mutation.reset();}} placeholder="rodatours:reservation:…" required maxLength={150}/>
+          </Field>
+          <button className="button" disabled={mutation.isPending||!payload.trim()}><QrCode size={18}/>{mutation.isPending?'Validando…':'Validar y registrar acceso'}</button>
+        </form>
+        <Notice>Leer el QR no lo canjea automáticamente. Revisa el código y pulsa validar para registrar el acceso.</Notice>
+      </Section>
+      <Section title="Resultado de validación">
+        <ErrorBox error={mutation.error}/>
+        {mutation.data?<div className="checkin-success"><CheckCircle2 size={42}/><h2>Acceso registrado</h2><h3>{mutation.data.tour}</h3><p>RT-{mutation.data.reservationId} · {mutation.data.persons} personas</p><p>{mutation.data.checkedInAt&&dateTime(mutation.data.checkedInAt)}</p><Link to={`/panel/reservas/${mutation.data.reservationId}`}>Abrir reserva →</Link></div>:<Empty title="Esperando un voucher">El resultado sólo aparecerá después de la respuesta del servidor.</Empty>}
+        <Notice>El check-in exige una reserva confirmada y salida hoy. No completa la experiencia ni modifica cupos. Un segundo canje devuelve conflicto 409.</Notice>
+      </Section>
+    </div>
+  </>;
 }

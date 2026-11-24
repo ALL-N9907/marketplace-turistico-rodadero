@@ -14,6 +14,7 @@ public class CloudinaryProperties {
     private String apiKey = "";
     private String apiSecret = "";
     private String uploadPreset = "";
+    private String imageUploadPreset = "";
     private long maxBytes = 52_428_800;
     private double maxDurationSeconds = 120;
 }

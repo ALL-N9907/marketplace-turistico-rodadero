@@ -25,6 +25,7 @@ import com.edu.unimag.rodatours.services.mapper.ReportMapper;
 import com.edu.unimag.rodatours.services.mapper.ReservationMapper;
 import lombok.RequiredArgsConstructor;
 import com.edu.unimag.rodatours.notifications.ReservationChanged;
+import com.edu.unimag.rodatours.history.ReservationStateChanged;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,7 +101,7 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = ReservationMapper.toEntity(
                 request, tourist, schedule, fechaInicio, fechaFin, precioTotal, codigoQr);
         Reservation saved = reservationRepository.save(reservation);
-        events.publishEvent(ReservationChanged.from(saved));
+        publishChange(saved, null, null);
         return ReservationMapper.toResponse(saved);
     }
 
@@ -188,7 +189,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         tourScheduleRepository.save(lockedSchedule);
         Reservation saved = reservationRepository.save(reservation);
-        events.publishEvent(ReservationChanged.from(saved));
+        publishChange(saved, ReservationStatus.SCHEDULED, null);
         return ReservationMapper.toResponse(saved);
     }
 
@@ -224,7 +225,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         Reservation saved = reservationRepository.save(reservation);
-        events.publishEvent(ReservationChanged.from(saved));
+        publishChange(saved, previousStatus, saved.getMotivoCancelacion());
         return ReservationMapper.toResponse(saved);
     }
 
@@ -240,8 +241,9 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         reservation.complete(observacionesAdicionales);
-        events.publishEvent(ReservationChanged.from(reservation));
-        return ReservationMapper.toResponse(reservationRepository.save(reservation));
+        Reservation saved = reservationRepository.save(reservation);
+        publishChange(saved, ReservationStatus.CONFIRMED, observacionesAdicionales);
+        return ReservationMapper.toResponse(saved);
     }
 
     @Override
@@ -256,8 +258,9 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         reservation.markNoShow();
-        events.publishEvent(ReservationChanged.from(reservation));
-        return ReservationMapper.toResponse(reservationRepository.save(reservation));
+        Reservation saved = reservationRepository.save(reservation);
+        publishChange(saved, ReservationStatus.CONFIRMED, null);
+        return ReservationMapper.toResponse(saved);
     }
 
     @Override
@@ -290,6 +293,12 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationRepository.findNoShowTourists(ReservationStatus.NO_SHOW, desde, hasta).stream()
                 .map(projection -> ReportMapper.toNoShowResponse(projection, desde, hasta))
                 .toList();
+    }
+
+    private void publishChange(Reservation reservation, ReservationStatus previousStatus, String reason) {
+        events.publishEvent(new ReservationStateChanged(reservation.getId(), previousStatus,
+                reservation.getEstado(), LocalDateTime.now(), reason));
+        events.publishEvent(ReservationChanged.from(reservation));
     }
 
     private void validateDateRange(LocalDate desde, LocalDate hasta) {

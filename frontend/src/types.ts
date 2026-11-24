@@ -5,7 +5,7 @@ export interface Tour { id: number; agenciaId: number; tipoExperienciaId: number
 export interface TourDetails { itinerary: string | null; conditions: string | null; supportsCommunities: boolean; environmentalPractices: boolean }
 export interface CatalogEntry { tour: Tour; details: TourDetails }
 export interface CatalogPage { content: CatalogEntry[]; totalElements: number; page: number; size: number }
-export interface Agency { id: number; nombreComercial: string; nitORegistro: string; descripcion: string | null; direccion: string; telefonoContacto: string; estado: string }
+export interface Agency { id: number; nombreComercial: string; nitORegistro: string; descripcion: string | null; direccion: string; telefonoContacto: string; estado: string; distanceKm?: number }
 export interface AgencyLocation { latitude: number | null; longitude: number | null; photoUrl: string | null }
 export interface ExperienceType { id: number; nombre: string; descripcion: string | null }
 export interface Schedule { id: number; tourId: number; guiaId: number | null; fechaTour: string; horaInicio: string; fechaFin: string; cuposTotales: number; cuposDisponibles: number }
@@ -13,6 +13,10 @@ export interface Slot { horarioId: number; tourId: number; fechaTour: string; ho
 export interface Reservation { id: number; turistaId: number; horarioId: number; fechaReserva: string; fechaInicio: string; fechaFin: string; cantidadPersonas: number; precioTotal: number; estado: Status; motivoCancelacion: string | null; observaciones: string | null; codigoQr: string; fechaModificacion: string }
 export interface Voucher { reservationId: number; tour: string; agency: string; start: string; end: string; persons: number; total: number; status: Status; qrPayload: string; checkedInAt: string | null }
 export interface Review { id: number; reservaId: number; calificacion: number; comentario: string | null; fechaCreacion: string }
+export interface PublicReview { id: number; rating: number; comment: string | null; createdAt: string }
+export interface PublicReviewPage { content: PublicReview[]; totalElements: number; page: number; size: number; totalPages: number; averageRating: number | null }
+export interface HistoryItem { id: number; previousStatus: Status | null; status: Status; occurredAt: string; actorRole: Role | 'SYSTEM'; reason: string | null }
+export interface HistoryPage { content: HistoryItem[]; totalElements: number; page: number; size: number; totalPages: number }
 export interface Notification { id: number; reservationId: number; subject: string; message: string; createdAt: string; readAt: string | null }
 export interface Page<T> { content: T[]; totalPages: number; number: number; last: boolean }
 export interface Video { url: string; durationSeconds: number; format: string }

@@ -60,6 +60,20 @@ class TourScheduleServiceImplTest {
     private Tour activeTour;
     private Guide activeGuide;
 
+    @Test
+    void rejectsOverlapWithTripThatStartedOnAPreviousDay() {
+        LocalDate date=LocalDate.now().plusDays(5);
+        var longTour=Tour.builder().id(11L).agencia(agency).duracionHoras(new BigDecimal("120")).build();
+        var existing=TourSchedule.builder().id(55L).tour(longTour).guia(activeGuide)
+                .fechaTour(date.minusDays(2)).horaInicio(LocalTime.of(8,0)).build();
+        when(tourRepository.findById(10L)).thenReturn(Optional.of(activeTour));
+        when(guideRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(activeGuide));
+        when(tourScheduleRepository.findByGuiaIdAndFechaTourLessThanEqualOrderByFechaTourAscHoraInicioAsc(eq(5L),any())).thenReturn(List.of(existing));
+        assertThrows(ConflictException.class,()->tourScheduleService.create(10L,new CreateTourScheduleRequest(5L,date,LocalTime.of(9,0),12)));
+        verify(guideRepository).findByIdForUpdate(5L);
+        verify(tourScheduleRepository,never()).save(any());
+    }
+
     @BeforeEach
     void setUp() {
         agency = Agency.builder().id(1L).nombreComercial("Agencia Sol").build();
@@ -87,8 +101,8 @@ class TourScheduleServiceImplTest {
 
         when(tourRepository.findById(10L)).thenReturn(Optional.of(activeTour));
         when(tourScheduleRepository.existsByTourIdAndFechaTourAndHoraInicio(10L, fecha, hora)).thenReturn(false);
-        when(guideRepository.findById(5L)).thenReturn(Optional.of(activeGuide));
-        when(tourScheduleRepository.findByGuiaIdAndFechaTourInOrderByHoraInicioAsc(eq(5L), anyList()))
+        when(guideRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(activeGuide));
+        when(tourScheduleRepository.findByGuiaIdAndFechaTourLessThanEqualOrderByFechaTourAscHoraInicioAsc(eq(5L), any()))
                 .thenReturn(List.of());
         when(tourScheduleRepository.save(any(TourSchedule.class))).thenAnswer(inv -> {
             TourSchedule s = inv.getArgument(0);
@@ -150,7 +164,7 @@ class TourScheduleServiceImplTest {
         // Guía de otra agencia
         Agency otherAgency = Agency.builder().id(99L).build();
         Guide otherAgencyGuide = Guide.builder().id(6L).agencia(otherAgency).estado(GuideStatus.ACTIVE).build();
-        when(guideRepository.findById(6L)).thenReturn(Optional.of(otherAgencyGuide));
+        when(guideRepository.findByIdForUpdate(6L)).thenReturn(Optional.of(otherAgencyGuide));
         assertThrows(BusinessException.class, () -> tourScheduleService.assignGuide(50L, 6L));
 
         // Guía con horario traslapado (10:00 a 13:00 se traslapa con 09:00 a 12:00)
@@ -160,13 +174,13 @@ class TourScheduleServiceImplTest {
                 .fechaTour(fecha)
                 .horaInicio(LocalTime.of(10, 0))
                 .build();
-        when(guideRepository.findById(5L)).thenReturn(Optional.of(activeGuide));
-        when(tourScheduleRepository.findByGuiaIdAndFechaTourInOrderByHoraInicioAsc(eq(5L), anyList()))
+        when(guideRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(activeGuide));
+        when(tourScheduleRepository.findByGuiaIdAndFechaTourLessThanEqualOrderByFechaTourAscHoraInicioAsc(eq(5L), any()))
                 .thenReturn(List.of(overlapping));
         assertThrows(ConflictException.class, () -> tourScheduleService.assignGuide(50L, 5L));
 
         // Asignación válida sin traslape
-        when(tourScheduleRepository.findByGuiaIdAndFechaTourInOrderByHoraInicioAsc(eq(5L), anyList()))
+        when(tourScheduleRepository.findByGuiaIdAndFechaTourLessThanEqualOrderByFechaTourAscHoraInicioAsc(eq(5L), any()))
                 .thenReturn(List.of());
         when(tourScheduleRepository.save(any(TourSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
