@@ -422,6 +422,8 @@ de servidor con firma o validez fiscal.
 
 ## 9. Publicación
 
+Para Render con base nueva, seguir [despliegue_render.md](despliegue_render.md).
+
 1. Elige alojamiento y dominio. El agente no contrata ni paga servicios por ti.
 2. Publica `frontend/dist/` tras `npm ci` y `npm run build`.
 3. Ejecuta el JAR/backend con Java 21 y PostgreSQL en una red privada.

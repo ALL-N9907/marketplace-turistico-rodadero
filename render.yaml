@@ -1,0 +1,43 @@
+# Usa la PostgreSQL ya creada; este Blueprint NO crea otra base.
+# Sólo Free: no cambiar a un plan de pago sin autorización del propietario.
+services:
+  - type: web
+    name: rodatours
+    runtime: docker
+    branch: frontend
+    region: oregon
+    plan: free
+    numInstances: 1
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: "off"
+    healthCheckPath: /api/experience-types
+    envVars:
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: SERVER_FORWARD_HEADERS_STRATEGY
+        value: framework
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:MaxRAMPercentage=65.0"
+      - key: SMTP_PORT
+        value: "2525"
+      - key: SMTP_AUTH
+        value: "true"
+      - key: SMTP_STARTTLS
+        value: "true"
+      - key: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED
+        value: "true"
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: APP_PUBLIC_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: VITE_MAPTILER_KEY
+        sync: false
