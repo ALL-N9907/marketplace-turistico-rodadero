@@ -8,6 +8,7 @@ import { EntityManager, type FormField } from '../components/EntityManager';
 import { ErrorBox, Field, Heading, Loading, Notice, Section } from '../components/ui';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { TourGalleryEditor } from '../components/TourGallery';
+import { cloudinaryUploadError } from '../lib/cloudinary';
 
 export function TourContent(){
   const {id}=useParams();return <><TourContentBody/><TourGalleryEditor tourId={id!}/></>;
@@ -31,11 +32,11 @@ function VideoManager({id}:{id:string}){
     if(url.protocol!=='https:'||url.hostname!=='api.cloudinary.com')throw new Error('El servidor devolvió un proveedor de carga no permitido.');
     const form=new FormData();Object.entries(authorization.upload.parameters).forEach(([k,v])=>form.append(k,v));form.append('file',file);form.append('api_key',authorization.upload.apiKey);form.append('signature',authorization.upload.signature);
     setStage('Cargando a Cloudinary. Espera a que termine…');const result=await fetch(url,{method:'POST',body:form,credentials:'omit'});
-    if(!result.ok)throw new Error('Cloudinary rechazó la carga. El video no ha sido publicado.');
+    if(!result.ok)throw cloudinaryUploadError(result.status);
     setStage('Verificando el archivo con el servidor…');await write(`/api/tours/${id}/video/complete`,'POST');
-  },onSuccess:()=>{setStage('Video verificado y publicado.');setFile(null);void client.invalidateQueries({queryKey:['video',id]});},onError:()=>setStage('La carga no se publicó. Elimina la sesión pendiente antes de iniciar otra; puedes reintentar la verificación si el archivo ya se cargó.')});
-  const remove=useMutation({mutationFn:()=>write(`/api/tours/${id}/video`,'DELETE'),onSuccess:()=>{setDeleting(false);setStage('Video o carga pendiente eliminados.');upload.reset();void client.invalidateQueries({queryKey:['video',id]});}});
-  const verify=useMutation({mutationFn:()=>write(`/api/tours/${id}/video/complete`,'POST'),onSuccess:()=>{setStage('Video verificado y publicado.');void client.invalidateQueries({queryKey:['video',id]});}});
+  },onSuccess:()=>{setStage('Video verificado y publicado.');setFile(null);void client.invalidateQueries({queryKey:['video',id]});},onError:()=>setStage('El video no se publicó. Si el archivo llegó a Cloudinary, espera unos segundos y reintenta la verificación sin cargar otra copia. Para reemplazarlo, elimina primero la carga pendiente.')});
+  const remove=useMutation({mutationFn:()=>write(`/api/tours/${id}/video`,'DELETE'),onSuccess:()=>{setDeleting(false);setStage('Video o carga pendiente eliminados.');upload.reset();verify.reset();void client.invalidateQueries({queryKey:['video',id]});}});
+  const verify=useMutation({mutationFn:()=>write(`/api/tours/${id}/video/complete`,'POST'),onMutate:()=>{upload.reset();setStage('Consultando los metadatos del video en Cloudinary…');},onSuccess:()=>{setStage('Video verificado y publicado.');void client.invalidateQueries({queryKey:['video',id]});},onError:()=>setStage('El video sigue sin publicarse. Consulta el motivo indicado antes de reintentar o reemplazarlo.')});
   return <Section title="Video de la experiencia"><ErrorBox error={video.error}/>{video.data&&<video className="tour-video" controls src={video.data.url} preload="metadata"/>}<p>Un video por tour · MP4, WebM o MOV · 50 MiB y 120 segundos como máximo.</p><Field label="Seleccionar archivo de video"><input type="file" accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime" disabled={upload.isPending||!!video.data} onChange={e=>{setFile(e.target.files?.[0]||null);upload.reset();}}/></Field><div className="form-actions"><button className="button" disabled={!file||upload.isPending||verify.isPending||!!video.data} onClick={()=>upload.mutate()}>Cargar y verificar video</button><button className="button secondary" disabled={upload.isPending||verify.isPending} onClick={()=>verify.mutate()}>Reintentar verificación</button><button className="text-button danger-text" disabled={upload.isPending||verify.isPending} onClick={()=>{setDeleting(true);remove.reset();}}>Eliminar video o carga pendiente</button></div>{stage&&<Notice>{stage}</Notice>}<ErrorBox error={upload.error||verify.error}/><small>No se publica el video hasta que el servidor lo verifique. La eliminación en el CDN puede tardar en propagarse.</small>{deleting&&<ConfirmDialog title="Eliminar video o sesión de carga" busy={remove.isPending} onCancel={()=>setDeleting(false)} onSubmit={e=>{e.preventDefault();remove.mutate();}}><p>Se solicitará la eliminación con invalidación de caché. Después podrás cargar un video nuevo.</p><ErrorBox error={remove.error}/></ConfirmDialog>}</Section>;
 }
 export function Schedules(){

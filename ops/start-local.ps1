@@ -14,6 +14,8 @@ $previous = @{}
 foreach ($name in $names) { $previous[$name] = [Environment]::GetEnvironmentVariable($name,'Process') }
 Push-Location $root
 try {
+    $secrets = Join-Path $PSScriptRoot 'local-secrets.ps1'
+    if (Test-Path $secrets) { . $secrets }
     $password = Read-Host "Contraseña PostgreSQL del usuario $DbUser (no se guarda en archivos)" -AsSecureString
     $env:DB_URL = "jdbc:postgresql://${DbHost}:${DbPort}/${DbName}"
     $env:DB_USERNAME = $DbUser

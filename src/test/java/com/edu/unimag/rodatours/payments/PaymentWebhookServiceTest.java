@@ -6,6 +6,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class PaymentWebhookServiceTest {
+    @Test void invalidSignatureNeverTouchesInbox(){
+        var signatures=new WebhookSignature(PaymentServiceTest.configured());var repo=mock(PaymentWebhookRepository.class);
+        var service=new PaymentWebhookService(signatures,repo);
+        String ts=Long.toString(java.time.Instant.now().getEpochSecond());
+        assertThrows(BadCredentialsException.class,()->service.accept("123","invalid-request","ts="+ts+",v1="+"0".repeat(64)));
+        verifyNoInteractions(repo);
+    }
     @Test void duplicatesUseDatabaseUpsertAndExpiredNewEventsAreRejected(){
         var signatures=mock(WebhookSignature.class);var repo=mock(PaymentWebhookRepository.class);var service=new PaymentWebhookService(signatures,repo);
         when(signatures.verify("1","request","header")).thenReturn(new WebhookSignature.Verified("key",true));

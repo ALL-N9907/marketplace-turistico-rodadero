@@ -28,4 +28,10 @@ class PaymentControllerTest {
         mvc.perform(post("/api/payments/webhook").param("data.id","123").header("x-request-id","request").header("x-signature","header"))
                 .andExpect(status().isOk());verify(webhooks).accept("123","request","header");
     }
+    @Test void invalidWebhookSignatureReturnsUnauthorized()throws Exception{
+        doThrow(new org.springframework.security.authentication.BadCredentialsException("Firma de notificación inválida."))
+                .when(webhooks).accept("123","request","invalid");
+        mvc.perform(post("/api/payments/webhook").param("data.id","123").header("x-request-id","request").header("x-signature","invalid"))
+                .andExpect(status().isUnauthorized());verifyNoInteractions(service);
+    }
 }

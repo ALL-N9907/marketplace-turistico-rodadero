@@ -7,6 +7,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import com.edu.unimag.rodatours.services.exceptions.ConflictException;
+import com.edu.unimag.rodatours.services.exceptions.ValidationException;
+import org.slf4j.LoggerFactory;
 
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
@@ -22,8 +25,10 @@ import java.util.stream.Collectors;
 /** Carga directa firmada; los metadatos se consultan al proveedor, nunca se confía en URLs del cliente. */
 @Component
 public class CloudinaryVideoProvider implements VideoProvider {
+    private static final int METADATA_ATTEMPTS = 3;
     private final CloudinaryProperties properties;
     private final RestClient client;
+    private final RetryPause pause;
 
     @org.springframework.beans.factory.annotation.Autowired
     public CloudinaryVideoProvider(CloudinaryProperties properties) {
@@ -31,9 +36,17 @@ public class CloudinaryVideoProvider implements VideoProvider {
     }
 
     CloudinaryVideoProvider(CloudinaryProperties properties, RestClient client) {
+        this(properties, client, () -> Thread.sleep(500));
+    }
+
+    CloudinaryVideoProvider(CloudinaryProperties properties, RestClient client, RetryPause pause) {
         this.properties = properties;
         this.client = client;
+        this.pause = pause;
     }
+
+    @FunctionalInterface
+    interface RetryPause { void await() throws InterruptedException; }
 
     private static RestClient createClient() {
         var factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder()
@@ -44,10 +57,7 @@ public class CloudinaryVideoProvider implements VideoProvider {
     }
 
     private void configured() {
-        if (!properties.getCloudName().matches("[a-zA-Z0-9_-]+") || properties.getApiKey().isBlank()
-                || properties.getApiSecret().isBlank() || properties.getUploadPreset().isBlank()) {
-            throw new MediaProviderException("La carga de videos no está configurada.");
-        }
+        CloudinaryFailures.configured(properties, properties.getUploadPreset());
     }
 
     @Override
@@ -76,8 +86,31 @@ public class CloudinaryVideoProvider implements VideoProvider {
     @Override
     public VideoMetadata inspect(String publicId) {
         configured();
+        for (int attempt = 1; attempt <= METADATA_ATTEMPTS; attempt++) {
+            try {
+                return inspectOnce(publicId);
+            } catch (MissingMetadata missing) {
+                // Sólo nombres de campos definidos por el servidor; nunca cuerpos o URLs remotos.
+                LoggerFactory.getLogger(CloudinaryVideoProvider.class).warn(
+                        "Cloudinary operacion=VERIFICAR_VIDEO categoria=METADATOS_PENDIENTES campo={} intento={}/{}",
+                        missing.field, attempt, METADATA_ATTEMPTS);
+                if (attempt == METADATA_ATTEMPTS) {
+                    throw new ConflictException("Cloudinary encontró el archivo, pero aún no devuelve todos los metadatos del video. Espere unos segundos y pulse Reintentar verificación. Si persiste, revise que el archivo tenga imagen de video válida; no vuelva a cargarlo sin eliminar la carga pendiente.");
+                }
+                try {
+                    pause.await();
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new MediaProviderException("Se interrumpió la verificación. Reintente en unos segundos.");
+                }
+            }
+        }
+        throw new IllegalStateException("Verificación de video sin resultado.");
+    }
+
+    private VideoMetadata inspectOnce(String publicId) {
         try {
-            Map<String, Object> response = client.get().uri("/{cloud}/resources/video/upload/{id}",
+            Map<String, Object> response = client.get().uri("/{cloud}/resources/video/upload/{id}?media_metadata=true",
                             properties.getCloudName(), publicId)
                     .headers(headers -> headers.setBasicAuth(properties.getApiKey(), properties.getApiSecret()))
                     .retrieve().body(new ParameterizedTypeReference<>() {});
@@ -93,15 +126,24 @@ public class CloudinaryVideoProvider implements VideoProvider {
                     number(response, "bytes").longValue(), number(response, "duration").doubleValue(),
                     number(response, "width").intValue(), number(response, "height").intValue());
         } catch (RestClientException exception) {
-            throw new MediaProviderException("No se pudo verificar el video en Cloudinary. Intente nuevamente.", exception);
+            throw CloudinaryFailures.failure("VERIFICAR_VIDEO", exception);
         }
     }
 
     private Number number(Map<String, Object> response, String field) {
-        if (!(response.get(field) instanceof Number number)) {
-            throw new MediaProviderException("Cloudinary devolvió metadatos incompletos.");
+        if (response.get(field) == null) {
+            throw new MissingMetadata(field);
+        }
+        if (!(response.get(field) instanceof Number number) || !Double.isFinite(number.doubleValue())
+                || number.doubleValue() <= 0) {
+            throw new ValidationException("Cloudinary no devolvió un video válido: duración, tamaño y dimensiones deben ser positivos. Revise el archivo antes de reemplazar la carga pendiente.");
         }
         return number;
+    }
+
+    private static final class MissingMetadata extends RuntimeException {
+        private final String field;
+        private MissingMetadata(String field) { this.field = field; }
     }
 
     @Override
@@ -123,7 +165,7 @@ public class CloudinaryVideoProvider implements VideoProvider {
                 throw new MediaProviderException("No se pudo eliminar el video en Cloudinary.");
             }
         } catch (RestClientException exception) {
-            throw new MediaProviderException("No se pudo eliminar el video en Cloudinary. Intente nuevamente.", exception);
+            throw CloudinaryFailures.failure("ELIMINAR_VIDEO", exception);
         }
     }
 }

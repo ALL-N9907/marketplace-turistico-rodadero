@@ -19,7 +19,9 @@ public class AccountDetailsService implements UserDetailsService {
     private final GuideRepository guides;
 
     @Override
-    @Transactional(readOnly = true)
+    // Un usuario inexistente es un resultado esperado para login/recuperación,
+    // no un fallo del recurso que deba marcar la transacción del llamador.
+    @Transactional(readOnly = true, noRollbackFor = UsernameNotFoundException.class)
     public UserDetails loadUserByUsername(String username) {
         String email = username.trim();
         var staff = accounts.findByEmailIgnoreCase(email);

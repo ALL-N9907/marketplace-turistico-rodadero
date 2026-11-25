@@ -69,7 +69,10 @@ public class PaymentService {
     public void apply(PaymentProvider.RemotePayment remote) {
         properties.requireConfigured();
         var payment = payments.lockByReference(remote.reference()).orElseThrow(() -> new ResourceNotFoundException("Referencia de pago no registrada."));
-        if (remote.liveMode() || !properties.getCollectorId().equals(remote.collectorId()) || !"COP".equals(remote.currency())
+        boolean verifiedTestAccounts = properties.getTestBuyerId() != null && properties.getTestBuyerId().matches("[0-9]+")
+                && !properties.getTestBuyerId().equals(properties.getCollectorId())
+                && properties.getTestBuyerId().equals(remote.verifiedTestBuyerId());
+        if ((remote.liveMode() && !verifiedTestAccounts) || !properties.getCollectorId().equals(remote.collectorId()) || !"COP".equals(remote.currency())
                 || payment.getAmount().compareTo(remote.amount()) != 0 || remote.updatedAt() == null
                 || remote.refunded() == null || remote.refunded().signum() < 0 || remote.refunded().compareTo(remote.amount()) > 0)
             throw new ValidationException("El pago no corresponde al entorno, vendedor, moneda o importe esperado.");

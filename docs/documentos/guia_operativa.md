@@ -41,7 +41,7 @@ cd C:\Users\ndezz\Desktop\rodatours
 ```
 
 El segundo script pregunta contraseñas de forma oculta, arranca con perfil local y
-restaura las variables del proceso al salir. No crea ni borra una base de datos.
+restaura las variables DB/admin del proceso al salir. No crea ni borra una base de datos.
 Usa `-BootstrapAdmin` sólo si necesitas un administrador nuevo; su correo no debe
 pertenecer a otra cuenta. En arranques posteriores:
 
@@ -164,7 +164,8 @@ la recuperación tiene su cola independiente y puede solicitarse de nuevo.
 
 En Mercado Pago Developers crea/configura tu aplicación para Colombia y consigue:
 
-- Un **Access Token de pruebas `TEST-…`**.
+- Un **Access Token de pruebas**. Puede empezar por `TEST-` o por `APP_USR-`
+  si pertenece a un vendedor de prueba; el prefijo no basta para acreditar el entorno.
 - El ID del vendedor/receptor de pruebas (`collector_id`).
 - El secreto de Webhooks de la aplicación (no es el Access Token).
 - Una URL HTTPS pública que permita llegar a tu backend. Para pruebas locales,
@@ -174,7 +175,7 @@ Variables del backend:
 
 ```text
 MP_ENABLED=true
-MP_ACCESS_TOKEN=<TEST-...>
+MP_ACCESS_TOKEN=<token del vendedor de pruebas>
 MP_COLLECTOR_ID=<id numérico del vendedor de pruebas>
 MP_WEBHOOK_SECRET=<secreto de notificaciones de al menos 16 caracteres>
 APP_PUBLIC_URL=https://<origen del frontend>
@@ -182,9 +183,29 @@ MP_NOTIFICATION_URL=https://<origen del backend>/api/payments/webhook
 ```
 
 No se necesita una clave secreta en el frontend: se utiliza Checkout Pro hospedado.
-El código **rechaza tokens productivos y URLs de checkout fuera de hosts sandbox
-permitidos**. Si tu modalidad de cuenta sólo ofrece credenciales distintas, verifica
-la documentación/capacidades del proveedor: no quites esa protección para probar.
+Para tokens `APP_USR-`, antes de crear preferencias o consultar pagos el backend
+verifica `/users/me`: exige la etiqueta `test_user` y el ID igual a `MP_COLLECTOR_ID`.
+Si la cuenta es real, falta información o falla la consulta, bloquea la operación.
+El código rechaza URLs de checkout fuera de hosts sandbox permitidos. No cambies
+manualmente el prefijo del token.
+
+Por defecto también rechaza pagos con `live_mode=true`. El flujo observado entre
+dos cuentas de prueba puede devolver ese indicador aun con vendedor `test_user`.
+Para habilitar exclusivamente ese caso, configura `MP_TEST_BUYER_ID` con el User ID
+del **comprador verificado manualmente en Cuentas de prueba** (distinto del vendedor).
+El proveedor exige además token APP_USR de vendedor verificado por `/users/me`,
+collector del pago coincidente, payer exactamente igual al ID permitido y perfil
+del comprador obtenido por API con ID coincidente y nickname `TESTUSER` numérico.
+El nickname no es por sí solo prueba de sandbox: se combina con el vendedor test_user
+y la lista explícita confirmada en el panel. Sin configuración, ante errores de API
+o discrepancias se bloquea. No se altera el valor original de `live_mode` ni se
+omiten las comprobaciones de COP, importe, referencia o reembolsos. No configures
+IDs de cuentas reales; esto no habilita un modo de pagos productivos.
+
+Configura los valores privados en `ops/local-secrets.ps1` y ejecuta
+`.\ops\test-mercadopago.ps1 -CheckConnectivity` para comprobar formato, conectividad
+y vendedor sin mostrar secretos ni crear pagos. Esto no valida la firma del webhook
+ni acredita las variables ya cargadas por un backend sin reiniciar.
 
 ### Configurar notificaciones
 
@@ -196,9 +217,40 @@ del proxy. Sólo ese endpoint excluye CSRF; los botones del usuario siguen prote
 El backend valida HMAC-SHA256 antes de encolar. La firma usa el manifiesto
 `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`. El contenido del cuerpo y los
 parámetros de retorno no acreditan pagos. Se consulta el recurso auténtico por API
-y se comprueban `live_mode=false`, vendedor, COP, importe y referencia local.
+y se comprueban `live_mode=false` (o la excepción de cuentas de prueba verificada
+descrita arriba), vendedor, COP, importe y referencia local.
 
 ### Prueba de aceptación
+
+Para verificar el receptor con un pago de prueba ya aprobado, ejecuta desde la raíz:
+
+```powershell
+.\ops\test-mercadopago-webhook.ps1
+# Si hay más de un pago aprobado reciente, selecciona explícitamente el existente:
+.\ops\test-mercadopago-webhook.ps1 -PaymentId <id-numerico>
+```
+
+Es una **prueba activa**: consulta la API oficial y crea un evento en la bandeja
+local, pero no crea preferencias, pagos ni reservas. Verifica vendedor `test_user`,
+collector, pago aprobado COP y comprador permitido si `live_mode=true` antes de
+enviar al webhook HTTPS configurado. Envía una firma válida, el duplicado exacto y
+una firma inválida con otro request ID. No imprime tokens, firmas ni cuerpos remotos.
+No reintenta envíos automáticamente: ante timeout, revisa primero la bandeja.
+
+Resultado HTTP esperado: **200 / 200 / 401** (también se considera rechazo 403 para
+la firma inválida). HTTP 200 acredita recepción, no procesamiento. En ADMIN →
+`/panel/operaciones` → **Eventos de pago**, compara con el estado anterior: debe
+haber **un solo evento nuevo** para ese pago, `DONE`, `VERIFIED`, **1 intento**, sin
+reintento manual; ni el duplicado ni la firma inválida deben crear otra fila.
+Comprueba que el pago siga aprobado sin revisión por duplicados y que la reserva
+siga confirmada. Dos aprobaciones distintas no son lo mismo que reenviar un evento.
+
+El script firma como emisor simulado: **no acredita una nueva entrega iniciada por
+Mercado Pago** ni la configuración del panel del proveedor. Esa entrega se valida
+por separado con su simulador/reenvío cuando esté disponible, sin volver a pagar.
+Las pruebas de persistencia/idempotencia con PostgreSQL aislado se ejecutan con
+`.\mvnw.cmd '-Dtest=PaymentIntegrationTest' test` y requieren Docker activo; nunca
+deben apuntarse a la base local del usuario.
 
 1. Crea y confirma una reserva cuya salida no haya empezado.
 2. Abre **Pago sandbox / consultar estado** desde la reserva.
@@ -231,6 +283,55 @@ y se comprueban `live_mode=false`, vendedor, COP, importe y referencia local.
 Referencia consultada: https://www.mercadopago.com.co/developers/es/docs/your-integrations/notifications/webhooks
 
 ## 6. Cloudinary: videos y fotografías
+
+### Configuración local privada y diagnóstico
+
+Opcionalmente copia `ops/local-secrets.example.ps1` a `ops/local-secrets.ps1`,
+completa los valores y descomenta las asignaciones que necesites. El archivo privado
+está ignorado por Git y se carga desde `start-local.ps1` y `test-cloudinary.ps1`.
+Contiene secretos en texto plano: limita el acceso al archivo, no lo compartas ni lo
+uses en producción. Las variables de servicios permanecen en esa terminal al salir.
+No cambies la clave RESET existente; conserva también la configuración SMTP.
+
+```powershell
+.\ops\test-cloudinary.ps1
+.\ops\start-local.ps1
+```
+
+El diagnóstico sólo consulta la Admin API: no carga, elimina ni imprime activos,
+API key, secret, cabeceras ni cuerpos remotos. Un HTTP 200 confirma acceso de lectura
+con esa pareja key/secret y nube, **no** prueba firmas de upload, presets ni permisos
+de eliminación. Si no hay archivo privado, utiliza las variables de esa terminal.
+Reinicia el backend después de cambiar su configuración.
+
+Los fallos remotos registran únicamente operación, categoría y estado HTTP:
+`AUTENTICACION` (401/403), `NO_ENCONTRADO` (404), `LIMITE` (429), `RED` o `PROVEEDOR`.
+`CONFIGURACION` indica valores ausentes o marcadores/espacios inválidos. Un 401/403
+no permite distinguir por sí solo firma inválida, credenciales o permisos: verifica
+el Dashboard de la misma nube. Nunca pegues secretos ni respuestas firmadas en el chat.
+
+Si una eliminación falla, **se conserva la referencia local**, tanto de cargas
+pendientes como publicadas. Corrige la configuración y reintenta desde el panel;
+no borres filas con SQL para saltarte la eliminación remota. `not found` como
+resultado de `destroy` sí permite borrar la fila de forma normal.
+
+Interpretación del navegador:
+- `/auth/me` 401 al abrir sin sesión puede ser normal; vuelve a iniciar sesión si persiste.
+- `GET /video` 404 significa que no hay video publicado, incluso si hay una carga pendiente.
+- `/upload-authorization` 409 exige eliminar la carga anterior antes de reemplazarla.
+- `/complete` 404 significa que falta la sesión local; no reintentes verificar sin crear una carga.
+- `/complete` 503 requiere leer el mensaje mostrado y la categoría del backend;
+  no demuestra por sí solo que falten variables. Verifica únicamente tras un upload exitoso.
+
+La consulta de video solicita `media_metadata=true` a la Admin API. Si faltan campos
+numéricos (tamaño, duración o dimensiones), realiza hasta tres consultas con pausas de
+500 ms entre ellas. No reintenta errores HTTP, credenciales ni red. Si los campos
+siguen ausentes, devuelve 409 y conserva la carga pendiente: espera unos segundos y
+pulsa **Reintentar verificación**, sin volver a subir el archivo. Los logs muestran
+`METADATOS_PENDIENTES`, el campo ausente y el intento, nunca el cuerpo remoto.
+La ausencia de campos no prueba que el video esté procesándose ni que sea inválido.
+Campos presentes pero no numéricos/no positivos/no finitos se rechazan con 400;
+los demás límites de formato, tamaño y duración siguen siendo obligatorios.
 
 Configura sólo en backend:
 
@@ -268,7 +369,22 @@ La ubicación del visitante sólo se solicita tras pulsar **Usar mi ubicación**
 también puede introducir coordenadas manualmente. Se envía por POST protegido con
 CSRF y no se persiste. No habilites logs de cuerpos HTTP que incluyan coordenadas.
 
-Para ver teselas en Leaflet, elige un proveedor y configura en `frontend/.env.local`:
+Proveedor elegido: **MapTiler**, mapa raster Streets v4 (256 px para Leaflet), con atribución MapTiler y
+OpenStreetMap visible. Crea una clave pública de navegador en el Dashboard de
+MapTiler y configura en `frontend/.env.local` (ignorado por Git):
+
+```text
+VITE_MAPTILER_KEY=tu_clave_publica_restringida
+```
+
+No compartas la clave aquí. Restringe sus orígenes HTTP permitidos a los del frontend
+(desarrollo: `127.0.0.1` y/o `localhost`, sin protocolo ni puerto en el campo
+Allowed HTTP origins del panel). En producción permite el dominio del frontend; preferiblemente utiliza
+una clave distinta. Configura cuotas/alertas y revisa el plan de MapTiler.
+Las teselas se solicitan directamente desde el navegador: el proveedor recibe la
+IP y las teselas consultadas; informa de ello en tu política de privacidad.
+
+Para cambiar de proveedor se conservan estas variables, que tienen prioridad:
 
 ```text
 VITE_MAP_TILE_URL=https://<proveedor>/{z}/{x}/{y}.png
@@ -278,6 +394,12 @@ VITE_MAP_ATTRIBUTION=<atribución exigida por su licencia>
 Reinicia Vite; para producción reconstruye el frontend. Cualquier clave VITE_* es
 pública: aplica restricciones por dominio y cuotas. No pongas secretos ahí.
 Verifica condiciones, privacidad y atribución del proveedor elegido.
+
+Comprobación real: abre `/agencias`, confirma teselas y atribución visibles y revisa
+que `api.maptiler.com` responda 200. Un 403 requiere revisar clave/restricciones;
+un 429, cuotas. Los marcadores usan exclusivamente coordenadas de la API, no datos
+inventados; sin agencias ubicadas se muestra un centro de referencia en El Rodadero.
+Sin clave ni proveedor alternativo se conserva el directorio sin solicitar teselas.
 
 ## 8. Política de pendientes y zona horaria
 

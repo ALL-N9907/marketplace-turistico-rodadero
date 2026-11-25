@@ -30,6 +30,15 @@ class PasswordResetIntegrationTest {
     @Autowired MockMvc mvc;@Autowired EntityManager em;@Autowired PasswordEncoder encoder;
     @Autowired PasswordResetRepository resets;@Autowired ResetTokenCodec codec;
     @MockitoBean JavaMailSender mail;
+    @Test
+    @Transactional(propagation=org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void unknownEmailReturnsAcceptedAfterServiceTransactionCompletes()throws Exception{
+        String email="missing-reset-integration@example.com";
+        mvc.perform(post("/api/auth/password-reset/request").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\""+email+"\"}"))
+                .andExpect(status().isAccepted()).andExpect(jsonPath("$.token").doesNotExist());
+        assertTrue(resets.findByEmail(email).isEmpty());
+    }
     @Test void recoveryIsOneUseAndRevokesSessionOnNextRequest()throws Exception{
         String email="reset-integration@example.com",password="old-password-123";
         var tourist=Tourist.builder().nombreCompleto("Prueba").correoElectronico(email).contrasena(encoder.encode(password)).build();em.persist(tourist);em.flush();

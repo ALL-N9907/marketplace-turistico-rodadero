@@ -189,9 +189,12 @@ No expongas el puerto de Spring al público sin la protección de red apropiada.
 6. **Correo:** configurar MAIL_ENABLED, SMTP_HOST, SMTP_PORT, SMTP_USERNAME,
    SMTP_PASSWORD, SMTP_FROM, SMTP_AUTH y SMTP_STARTTLS en Spring; verificar entrega
    en un buzón de prueba. La bandeja interna funciona aunque SMTP esté apagado.
-7. **Mapa:** contratar/elegir proveedor de teselas, configurar VITE_MAP_TILE_URL y
-   VITE_MAP_ATTRIBUTION y registrar coordenadas reales. Revisar licencia, cuotas,
-   privacidad y restricciones de cualquier clave pública por dominio.
+7. **Mapa (MapTiler):** crear una clave pública restringida por origen y configurar
+   `VITE_MAPTILER_KEY` en `frontend/.env.local`. Reiniciar Vite (reconstruir en producción).
+   Se usa Streets v4 (teselas de 256 px) con atribución MapTiler/OpenStreetMap. Registrar coordenadas reales
+   de agencias y revisar cuotas, licencia y privacidad. No usar secretos privados en
+   variables VITE_*. `VITE_MAP_TILE_URL` + `VITE_MAP_ATTRIBUTION` siguen disponibles
+   para proveedores alternativos y tienen prioridad. Sin configuración no se piden teselas.
 8. **Cámara:** publicar por HTTPS y otorgar permisos del navegador; probar en equipos
    reales. El canje ya resuelve el QR sin introducir el ID y requiere confirmación
    explícita. No necesita un proveedor externo de QR.

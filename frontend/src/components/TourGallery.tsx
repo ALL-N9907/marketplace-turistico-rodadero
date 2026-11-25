@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, write } from '../lib/api';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Empty, ErrorBox, Field, Notice, Section } from './ui';
+import { cloudinaryUploadError } from '../lib/cloudinary';
 
 interface Image {id:number;status:string;url:string|null;expiresAt:string}
 interface Upload {id:number;maxBytes:number;upload:{uploadUrl:string;apiKey:string;signature:string;parameters:Record<string,string>}}
@@ -25,7 +26,7 @@ export function TourGalleryEditor({tourId}:{tourId:string}){
     const url=new URL(auth.upload.uploadUrl);if(url.protocol!=='https:'||url.hostname!=='api.cloudinary.com'||!url.pathname.endsWith('/image/upload'))throw new Error('Proveedor de imagen no permitido.');
     if(file.size>auth.maxBytes)throw new Error('El archivo supera el límite del servidor.');
     const body=new FormData();Object.entries(auth.upload.parameters).forEach(([k,v])=>body.append(k,v));body.append('file',file);body.append('api_key',auth.upload.apiKey);body.append('signature',auth.upload.signature);
-    setStage('Cargando a Cloudinary…');const response=await fetch(url,{method:'POST',credentials:'omit',body});if(!response.ok)throw new Error('La carga fue rechazada. No se publicó la fotografía.');
+    setStage('Cargando a Cloudinary…');const response=await fetch(url,{method:'POST',credentials:'omit',body});if(!response.ok)throw cloudinaryUploadError(response.status);
     setStage('Verificando la imagen…');await write(`/api/tours/${tourId}/images/${auth.id}/complete`,'POST');
   },onSuccess:()=>{setStage('Fotografía verificada y publicada.');setFile(null);refresh();},onError:()=>{setStage('La imagen no se publicó. Puedes verificar o eliminar la carga pendiente.');refresh();}});
   const verify=useMutation({mutationFn:(id:number)=>write(`/api/tours/${tourId}/images/${id}/complete`,'POST'),onSuccess:refresh});

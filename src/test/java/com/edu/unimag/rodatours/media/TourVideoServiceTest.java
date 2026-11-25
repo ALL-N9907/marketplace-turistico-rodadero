@@ -111,6 +111,17 @@ class TourVideoServiceTest {
     }
 
     @Test
+    void incompleteMetadataKeepsPendingUploadWithoutPublishingOrDeleting() {
+        when(videos.findByIdForUpdate(1L)).thenReturn(Optional.of(video));
+        when(provider.inspect("owned-video")).thenThrow(new ConflictException("Metadatos pendientes"));
+        assertThrows(ConflictException.class, () -> service.complete(1L));
+        assertFalse(video.isReady());
+        verify(videos, never()).save(any());
+        verify(videos, never()).delete(any());
+        verify(provider, never()).delete(anyString());
+    }
+
+    @Test
     void preservesDatabaseRecordWhenProviderDeletionFails() {
         when(videos.findByIdForUpdate(1L)).thenReturn(Optional.of(video));
         doThrow(new MediaProviderException("No disponible")).when(provider).delete("owned-video");

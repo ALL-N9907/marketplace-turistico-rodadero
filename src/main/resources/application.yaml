@@ -39,6 +39,7 @@ rodatours:
     access-token: ${MP_ACCESS_TOKEN:}
     webhook-secret: ${MP_WEBHOOK_SECRET:}
     collector-id: ${MP_COLLECTOR_ID:}
+    test-buyer-id: ${MP_TEST_BUYER_ID:}
     frontend-url: ${APP_PUBLIC_URL:}
     notification-url: ${MP_NOTIFICATION_URL:}
   cloudinary:

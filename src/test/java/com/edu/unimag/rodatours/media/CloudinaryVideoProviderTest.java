@@ -12,6 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.concurrent.atomic.AtomicInteger;
+import com.edu.unimag.rodatours.services.exceptions.ConflictException;
+import com.edu.unimag.rodatours.services.exceptions.ValidationException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
@@ -31,7 +34,7 @@ class CloudinaryVideoProviderTest {
         properties.setUploadPreset("tour-videos");
         var builder = RestClient.builder().baseUrl("https://api.cloudinary.com/v1_1");
         server = MockRestServiceServer.bindTo(builder).build();
-        provider = new CloudinaryVideoProvider(properties, builder.build());
+        provider = new CloudinaryVideoProvider(properties, builder.build(), () -> {});
     }
 
     @Test
@@ -56,7 +59,7 @@ class CloudinaryVideoProviderTest {
 
     @Test
     void verifiesVideoUsingAuthenticatedProviderMetadata() {
-        server.expect(requestTo("https://api.cloudinary.com/v1_1/test-cloud/resources/video/upload/test-video"))
+        server.expect(requestTo("https://api.cloudinary.com/v1_1/test-cloud/resources/video/upload/test-video?media_metadata=true"))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(header("Authorization", "Basic MTIzOnByaXZhdGUtc2VjcmV0"))
                 .andRespond(withSuccess("""
@@ -84,7 +87,9 @@ class CloudinaryVideoProviderTest {
         server.expect(anything()).andRespond(withStatus(HttpStatus.UNAUTHORIZED)
                 .body("api_secret=private-secret"));
         var exception = assertThrows(MediaProviderException.class, () -> provider.inspect("test-video"));
+        assertTrue(exception.getMessage().contains("credenciales"));
         assertFalse(exception.getMessage().contains("private-secret"));
+        assertNull(exception.getCause());
         server.verify();
     }
 
@@ -97,5 +102,74 @@ class CloudinaryVideoProviderTest {
                 .andRespond(withSuccess("{\"result\":\"ok\"}", MediaType.APPLICATION_JSON));
         provider.delete("test-video");
         server.verify();
+    }
+
+    private String metadata(String extra) {
+        return """
+                {"public_id":"test-video","resource_type":"video","format":"mp4","bytes":1000,
+                 "secure_url":"https://res.cloudinary.com/test-cloud/video/upload/v1/test-video.mp4"
+                """ + extra + "}";
+    }
+
+    @Test
+    void retriesIncompleteMetadataThenReturnsVerifiedVideo() {
+        server.expect(anything()).andRespond(withSuccess(metadata(",\"width\":1280,\"height\":720"), MediaType.APPLICATION_JSON));
+        server.expect(anything()).andRespond(withSuccess(metadata(",\"duration\":12.5,\"width\":1280,\"height\":720"), MediaType.APPLICATION_JSON));
+        assertEquals(12.5, provider.inspect("test-video").duration());
+        server.verify();
+    }
+
+    @Test
+    void persistentMissingFieldsReturnConflictWithoutClaimingInvalidFile() {
+        for (int i = 0; i < 3; i++) {
+            server.expect(anything()).andRespond(withSuccess(metadata(""), MediaType.APPLICATION_JSON));
+        }
+        var error = assertThrows(ConflictException.class, () -> provider.inspect("test-video"));
+        assertTrue(error.getMessage().contains("Reintentar verificación"));
+        assertFalse(error.getMessage().contains("private-secret"));
+        server.verify();
+    }
+
+    @Test
+    void invalidDimensionsAreRejectedWithoutRetry() {
+        server.expect(anything()).andRespond(withSuccess(metadata(",\"duration\":12,\"width\":0,\"height\":0"), MediaType.APPLICATION_JSON));
+        assertThrows(ValidationException.class, () -> provider.inspect("test-video"));
+        server.verify();
+    }
+
+    @Test
+    void authenticationOrNetworkErrorsAreNotRetried() {
+        server.expect(anything()).andRespond(withException(new java.io.IOException("private-secret")));
+        assertThrows(MediaProviderException.class, () -> provider.inspect("test-video"));
+        server.verify();
+    }
+
+    @Test
+    void pausesOnlyBetweenIncompleteResponses() {
+        var builder = RestClient.builder().baseUrl("https://api.cloudinary.com/v1_1");
+        var localServer = MockRestServiceServer.bindTo(builder).build();
+        var pauses = new AtomicInteger();
+        var localProvider = new CloudinaryVideoProvider(properties, builder.build(), () -> { pauses.incrementAndGet(); });
+        for (int i = 0; i < 3; i++) {
+            localServer.expect(anything()).andRespond(withSuccess(metadata(""), MediaType.APPLICATION_JSON));
+        }
+        assertThrows(ConflictException.class, () -> localProvider.inspect("test-video"));
+        assertEquals(2, pauses.get());
+        localServer.verify();
+    }
+
+    @Test
+    void interruptionRestoresFlagAndStopsRetrying() {
+        var builder = RestClient.builder().baseUrl("https://api.cloudinary.com/v1_1");
+        var localServer = MockRestServiceServer.bindTo(builder).build();
+        var localProvider = new CloudinaryVideoProvider(properties, builder.build(), () -> { throw new InterruptedException(); });
+        localServer.expect(anything()).andRespond(withSuccess(metadata(""), MediaType.APPLICATION_JSON));
+        try {
+            assertThrows(MediaProviderException.class, () -> localProvider.inspect("test-video"));
+            assertTrue(Thread.currentThread().isInterrupted());
+            localServer.verify();
+        } finally {
+            Thread.interrupted();
+        }
     }
 }

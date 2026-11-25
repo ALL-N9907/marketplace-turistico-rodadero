@@ -36,3 +36,4 @@ build/
 .env
 .env.*
 !.env.example
+/ops/local-secrets.ps1

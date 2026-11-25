@@ -10,5 +10,11 @@ public interface PaymentProvider {
     List<String> search(String reference);
     record Checkout(String id, String sandboxUrl) {}
     record RemotePayment(String id, String reference, BigDecimal amount, String currency, String status,
-                         boolean liveMode, String collectorId, BigDecimal refunded, Instant updatedAt) {}
+                         boolean liveMode, String collectorId, BigDecimal refunded, Instant updatedAt,
+                         String verifiedTestBuyerId) {
+        public RemotePayment(String id, String reference, BigDecimal amount, String currency, String status,
+                             boolean liveMode, String collectorId, BigDecimal refunded, Instant updatedAt) {
+            this(id, reference, amount, currency, status, liveMode, collectorId, refunded, updatedAt, null);
+        }
+    }
 }

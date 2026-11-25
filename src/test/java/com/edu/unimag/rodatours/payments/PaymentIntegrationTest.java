@@ -22,6 +22,12 @@ class PaymentIntegrationTest {
     @Autowired PaymentWebhookService inbox;@Autowired PaymentWebhookRepository events;
     @Autowired PaymentRepository payments;@Autowired PaymentWebhookProcessor processor;@Autowired PaymentProperties properties;
     @MockitoBean PaymentProvider provider;
+    @Test void invalidSignedWebhookDoesNotCreateInboxRow(){
+        long before=events.count();String ts=Long.toString(Instant.now().getEpochSecond());
+        assertThrows(org.springframework.security.authentication.BadCredentialsException.class,
+                ()->inbox.accept("123","invalid-request","ts="+ts+",v1="+"0".repeat(64)));
+        assertEquals(before,events.count());verifyNoInteractions(provider);
+    }
     @Test void duplicateSignedWebhookIsPersistedOnlyOnceAndVerifiedPaymentIsApplied()throws Exception{
         String ts=Long.toString(Instant.now().getEpochSecond());String signature=WebhookSignatureTest.signature("123","request-1",ts,properties.getWebhookSecret());
         inbox.accept("123","request-1",signature);inbox.accept("123","request-1",signature);
